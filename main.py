@@ -6,9 +6,10 @@ from pydantic import BaseModel
 from openai import OpenAI
 import pdfplumber
 import random
+import os
 
 # Initialize OpenAI client
-client = OpenAI(api_key="OPENAI_API_KEY")  # <-- your key
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Create FastAPI app
 app = FastAPI()
