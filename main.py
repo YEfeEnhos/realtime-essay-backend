@@ -8,7 +8,7 @@ import pdfplumber
 import random
 
 # Initialize OpenAI client
-client = OpenAI(api_key="REMOVED_API_KEY")  # <-- your key
+client = OpenAI(api_key="OPENAI_API_KEY")  # <-- your key
 
 # Create FastAPI app
 app = FastAPI()
