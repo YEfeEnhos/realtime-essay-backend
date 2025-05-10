@@ -154,6 +154,24 @@ async def next_question(req: QuestionRequest):
     conversation_history = conversation_history or "This is the first question."
     track_questions = PRESETS.get(req.track, [])
     selected_preset = random.choice(track_questions) if track_questions else ""
+    
+    interest_response = client.chat.completions.create(
+    model="gpt-4",
+    messages=[
+        {"role": "system", "content": "You extract academic interests from text. Only return a comma-separated list like: 'Computer Science, Mathematics, Biology'."},
+        {"role": "user", "content": f"Extract the student's academic interests from the following CV:\n{req.cv_text}"}
+    ]
+    )
+    academic_fields = interest_response.choices[0].message.content.strip()
+    
+    intro_line = (
+    f"Looks like {academic_fields} are your main academic interests. "
+    "Could you tell me about three or four of your favourite subjects, related or unrelated to those interests?"
+    if academic_fields and academic_fields.lower() != "none"
+    else "Could you tell me about three or four of your favourite subjects, whether or not they relate to what you want to study?"
+    )
+    
+    
 
     # Pick the prompt based on the phase
     if req.is_rapid_fire:
@@ -175,7 +193,7 @@ Conversation so far:
 
 Instructions:
 1. Begin with:
-   “Looks like {', '.join(req.academic_fields) if req.academic_fields else '[identify]'} are your main academic interests. Could you tell me about three or four of your favourite subjects, related or unrelated to those interests?”
+   {intro_line}
 
 2. Then go subject by subject. For each one, ask in this style:
 - “How have you pursued this subject at school or during summer school?”
