@@ -170,10 +170,11 @@ async def next_question(req: QuestionRequest):
     
     intro_line = (
     f"Looks like {academic_fields} are your main academic interests. "
-    "Could you tell me about three or four of your favourite subjects, related or unrelated to those interests?"
+    f"Could you tell me about three or four of your favourite subjects, related or unrelated to those interests?"
     if academic_fields and academic_fields.lower() != "none"
     else "Could you tell me about three or four of your favourite subjects, whether or not they relate to what you want to study?"
     )
+
     
     
 
