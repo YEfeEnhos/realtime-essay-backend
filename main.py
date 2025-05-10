@@ -177,9 +177,9 @@ Steps to follow (instructions):
    Looks like [Extract 2-3 broad academic interests from the students CV] are your main academic interests. Could you tell me about three or four of your favourite subjects, related or unrelated to those interests?
 
 
-2. When the student tells their academic interests choose one of them: if possible, use the CV and ask: “Looks like you studied this at [From the CV mention maximum 3 courses the student took]. Tell me more?” If not simply ask: “How have you pursued [subject name] subject at school or during summer school?”
+2. When the student tells their academic interests choose one of them and do not change the choosen academic interest untill you ask all questions below: if possible, use the CV and ask: “Looks like you studied this at [From the CV mention maximum 3 courses the student took]. Tell me more?” If not (no cv provided case) simply ask: “How have you pursued [subject name] subject at school or during summer school?”
 
-   Then: If possible, use the CV and ask:“I especially would like to know more about [From the CV select 2-3 research, internships or outisde of class activities related to the current academic field of discussion]? Tell me more about them.” If not simply ask: “Have you done any research, internships or outisde of class activities related to [subject name] subject outside class?” 
+   Then: If possible, use the CV and ask:“I especially would like to know more about [From the CV select 2-3 research, internships or outisde of class activities related to the current academic field of discussion]? Tell me more about them.” If not (no cv provided case) simply ask: “Have you done any research, internships or outisde of class activities related to [subject name] subject outside class?” 
    
    Then ask: “Is there anything more you want to add regarding this subject? If not lets move on.”  
     - If the student says yes, ask: "What else would you like to add?” If the student says no, repeat the process by choosing the next subject which you can find in the conversation history. 
@@ -210,6 +210,8 @@ Interview Track: {req.track}
 
 Preset question to base your next move on:
 "{selected_preset}"
+
+Pick the most relevant preset question from the list according to the conversation history and the CV.
 
 Conversation so far:
 {conversation_history}
