@@ -287,7 +287,8 @@ Reminder:
     return {
         "question": question,
         "current_theme": guessed_theme,
-        "theme_counts": theme_counts
+        "theme_counts": theme_counts,
+        "academic_fields": academic_fields
     }
 
 # --- Endpoint: Speak ---
