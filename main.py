@@ -209,7 +209,7 @@ Conversation so far:
 
 Instructions:
 1. Begin with:
-   Looks like {short_fields} are your main academic interests.
+   Looks like [Extract 2-3 broad academic interests from the students CV] are your main academic interests. Could you tell me about three or four of your favourite subjects, related or unrelated to those interests?
 
 2. Then go subject by subject. For each one, ask in this style:
 - “How have you pursued this subject at school or during summer school?”
