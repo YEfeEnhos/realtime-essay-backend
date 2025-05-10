@@ -164,12 +164,7 @@ async def next_question(req: QuestionRequest):
         prompt = f"""
 You are a warm, perceptive assistant to a college counselor. Your job is to help the counselor gather **factual information** about the student’s academic background during this **rapid-fire round** of an interview.
 
-🎯 Your job is only to gather **objective details**:
-- What subjects the student likes.
-- What they’ve done in school/summer school for each subject.
-- What they've done outside the classroom (research, projects, internships).
-- For each subject, ask 2–3 clear and factual questions.
-- DO NOT explore feelings, reflections, motivations, or themes yet.
+Your job is only to gather **objective details**
 
 CV of the student:
 {req.cv_text}
