@@ -182,9 +182,9 @@ Steps to follow (instructions):
    Looks like [Extract 2-3 broad academic interests from the students CV] are your main academic interests. Could you tell me about three or four of your favourite subjects, related or unrelated to those interests?
 
 
-2. When the student tells their academic interests choose one of them and ask: “How have you pursued this subject at school or during summer school?” If possible, use the CV and instead ask: “Looks like you studied this at [From the CV mention maximum 3 courses the student took]. Tell me more?”
+2. When the student tells their academic interests choose one of them and ask: “How have you pursued [subject name] subject at school or during summer school?” If possible, use the CV and instead ask: “Looks like you studied this at [From the CV mention maximum 3 courses the student took]. Tell me more?”
 
-   Then ask: “Have you done any research, internships or outisde of class activities related to this subject outside class?” If possible, use the CV and instead ask:“I especially would like to know more about [From the CV select 3 research, internships or outisde of class activities related to the current academic field of discussion]? Tell me more about them.”
+   Then ask: “Have you done any research, internships or outisde of class activities related to [subject name] subject outside class?” If possible, use the CV and instead ask:“I especially would like to know more about [From the CV select 2-3 research, internships or outisde of class activities related to the current academic field of discussion]? Tell me more about them.”
    
    Then ask: “Is there anything more you want to add regarding this subject? If not lets move on.”  
     
