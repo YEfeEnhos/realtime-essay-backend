@@ -6,6 +6,8 @@ from openai import OpenAI
 import pdfplumber
 import os
 import random
+import logging
+logging.basicConfig(level=logging.INFO)
 
 # --- Initialize OpenAI ---
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -162,6 +164,8 @@ async def next_question(req: QuestionRequest):
         {"role": "user", "content": f"Extract the student's academic interests from the following CV:\n{req.cv_text}"}
     ]
     )
+    logging.info(f"CV Text: {req.cv_text}")
+    logging.info(f"Interest response: {interest_response}")
     academic_fields = interest_response.choices[0].message.content.strip()
     
     intro_line = (
