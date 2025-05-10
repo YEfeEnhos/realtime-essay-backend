@@ -157,36 +157,6 @@ async def next_question(req: QuestionRequest):
     track_questions = PRESETS.get(req.track, [])
     selected_preset = random.choice(track_questions) if track_questions else ""
     
-    interest_response = client.chat.completions.create(
-    model="gpt-4",
-    messages=[
-        {"role": "system", "content": "You extract academic interests from text. Only return a comma-separated list like: 'Computer Science, Mathematics, Biology'."},
-        {"role": "user", "content": f"Extract the student's academic interests from the following CV:\n{req.cv_text}"}
-    ]
-    )
-    logging.info(f"CV Text: {req.cv_text}")
-    logging.info(f"Interest response: {interest_response}")
-    
-    academic_fields = interest_response.choices[0].message.content.strip()
-    logging.info(f"Extracted academic fields: {academic_fields}")
-    
-    field_list = [f.strip() for f in academic_fields.split(",") if f.strip()]
-    short_fields = ", ".join(field_list[:3]) 
-    
-    logging.info(f"Short fields: {short_fields}")
-    
-
-    
-    if short_fields:
-        intro_line = (
-        f"Looks like {short_fields} are your main academic interests. "
-        "Could you tell me about three or four of your favourite subjects, related or unrelated to those interests?"
-    )
-    else:
-        intro_line = (
-        "Could you tell me about three or four of your favourite subjects, whether or not they relate to what you want to study?"
-    )
-
     
 
     # Pick the prompt based on the phase
@@ -214,20 +184,24 @@ Instructions:
 2. Then go subject by subject. For each one, ask in this style:
 - “How have you pursued this subject at school or during summer school?”
    If possible, use the CV and ask:  
-   “Looks like you studied this at [CV content]. Tell me more?”
+   “Looks like you studied this at [From the CV mention maximum 3 courses the student took]. Tell me more?”
 
-- “Have you done any research or projects related to this subject outside class?”
+- “Have you done any research, internships or outisde of class activities related to this subject outside class?”
    If possible, use the CV and ask:  
-   “I noticed you interned at [CV content] — was that related? Tell me more.”
+   “I especially would like to know more about [From the CV select 3 research, internships or outisde of class activities related to the current academic field of discussion]? Tell me more about them.”
+   
 
-3. Ask for concrete examples (project names, courses, grades, settings), but NOT reflections.
+3. After these questions per subject, ask:
+   “Is there anything more you want to add regarding this subject? If not lets move on.”  
+    If the student says yes, ask:
+    “What else would you like to add?”
+    If the student says no, move to step 4.
 
-4. After 2–3 questions per subject, transition smoothly:
-   “Thanks. Can we move on to the next subject: [next_subject]?”  
-   (This part is handled by the frontend via a Next button.)
+4. Repeat the process by choosing the next subject and returning to step 1.
 
 ⚠️ Important:
 - Ask ONE simple and factual question at a time.
+- Only ask about the singular subject at hand. (i.e. finish the discussion about one subject before moving to the next.)
 - Stay focused on information-gathering only.
 - DO NOT mention themes, motivations, or essay ideas yet.
 """
@@ -304,7 +278,6 @@ Reminder:
         "question": question,
         "current_theme": guessed_theme,
         "theme_counts": theme_counts,
-        "academic_fields": academic_fields
     }
 
 # --- Endpoint: Speak ---
