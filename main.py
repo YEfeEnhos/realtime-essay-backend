@@ -162,12 +162,7 @@ async def next_question(req: QuestionRequest):
     # Pick the prompt based on the phase
     if req.is_rapid_fire:
         prompt = f"""
-You are a warm, perceptive assistant to a college counselor. Your job is to help the counselor gather **factual information** about the student’s academic background during this **rapid-fire round** of an interview.
-
-Your job is only to gather **objective details** and follow the given instructions.
-
-
-
+Your job is to gather **objective details** and follow the given instructions.
 
 CV of the student:
 {req.cv_text}
@@ -201,8 +196,6 @@ Steps to follow (instructions):
   # <- use your rapid-fire prompt here
     else:
         prompt = f"""
-You are a warm, perceptive assistant to a college counselor. The college counselor has asked you to interview the student, taking the preset questions as a starting point. The college counselor will use the interview transcript to brainstorm potential college application essay topics with the student.
-
 Your task is to:
 a. Gather as much detail as possible about the student’s academic interests, extracurricular involvement and personal background. These details are necessary for the counselor.
 b. Build on these details with further questions about the student’s motivation and character as it relates to the subject being discussed.
@@ -210,6 +203,8 @@ c. Search for potential themes in the student’s answers, taking the preset the
 
 Student's CV:
 {req.cv_text}
+
+If the student has not provided a CV pay more attention to conversation history and preset questions.
 
 Interview Track: {req.track}
 
@@ -246,7 +241,7 @@ Reminder:
     response = client.chat.completions.create(
         model="gpt-4",
         messages=[
-            {"role": "system", "content": "You are a college essay coach helping a student discover themes."},
+            {"role": "system", "content": "You are a warm, perceptive assistant to a college counselor. The college counselor has asked you to interview the student, taking the preset questions as a starting point. The college counselor will use the interview transcript to brainstorm potential college application essay topics with the student."},
             {"role": "user", "content": prompt}
         ]
     )
