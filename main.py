@@ -1,21 +1,18 @@
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
-from fastapi.responses import JSONResponse
+from fastapi.responses import StreamingResponse, JSONResponse
 from pydantic import BaseModel
 from openai import OpenAI
 import pdfplumber
 import random
 import os
-from openai import OpenAI
 
 # Initialize OpenAI client
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# Create FastAPI app
 app = FastAPI()
 
-# Allow frontend access
+# Allow CORS for frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -23,6 +20,28 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# --- Essay Themes ---
+PRESET_THEMES = [
+    "Overcoming rigid expectations & redefining success",
+    "Heritage & family history as a source of purpose",
+    "Immigrant / refugee identity & cultural adaptation",
+    "Venturing beyond the comfort‑zone (geographic or personal)",
+    "Evolving concept of home & belonging",
+    "Interdisciplinary curiosity — bridging disparate fields",
+    "Craftsmanship / entrepreneurship as self‑expression",
+    "Social‑justice & advocacy (racism, refugees, education equity)",
+    "Leadership / mentoring younger peers",
+    "Resilience in the face of personal adversity",
+    "Mind–body wellbeing & self‑care",
+    "Intrinsic love of learning & intellectual independence",
+    "Seeing patterns & connections in everyday life",
+    "Purpose, legacy & impact‑driven research",
+    "Creativity as personal voice",
+    "Embracing uncertainty & adaptability",
+    "Privilege, gratitude & 'giving back'",
+    "Identity & self‑worth beyond external validation"
+]
 
 # --- Preset Interview Tracks ---
 PRESETS = {
@@ -93,40 +112,26 @@ PRESETS = {
     ]
 }
 
-# --- Smart History Trimming Parameters ---
-MAX_CHAR_HISTORY = 3000  # maximum total character limit
-MAX_TURNS = 5            # maximum last 5 questions and answers
+MAX_CHAR_HISTORY = 3000
+MAX_TURNS = 5
 
-# --- Data Model ---
 class QuestionRequest(BaseModel):
     track: str
     cv_text: str
-    history: list  # list of {"question": ..., "answer": ...}
-
-# --- Utilities ---
+    history: list
+    theme_counts: dict = {}
+    current_theme: str = ""
 
 def smart_conversation_history(history):
-    """
-    Trims the conversation history to fit within MAX_CHAR_HISTORY
-    and only keeps the most recent MAX_TURNS turns.
-    """
-    # Take last N turns first
     recent_history = history[-MAX_TURNS:]
-
-    # Turn into text
     text = "\n".join([f"Q: {turn['question']}\nA: {turn['answer']}" for turn in recent_history])
-
-    # If still too long, trim more
     if len(text) > MAX_CHAR_HISTORY:
         for i in range(len(recent_history)):
-            trimmed_text = "\n".join([f"Q: {turn['question']}\nA: {turn['answer']}" for turn in recent_history[i:]])
-            if len(trimmed_text) <= MAX_CHAR_HISTORY:
-                return trimmed_text
-        return ""  # fallback if still too long
-    else:
-        return text
-
-# --- Endpoints ---
+            trimmed = "\n".join([f"Q: {t['question']}\nA: {t['answer']}" for t in recent_history[i:]])
+            if len(trimmed) <= MAX_CHAR_HISTORY:
+                return trimmed
+        return ""
+    return text
 
 @app.post("/upload-cv")
 async def upload_cv(file: UploadFile = File(...)):
@@ -141,39 +146,51 @@ async def upload_cv(file: UploadFile = File(...)):
 async def next_question(req: QuestionRequest):
     track_questions = PRESETS.get(req.track, [])
     selected_preset = random.choice(track_questions)
-
-    # Use smart trimmed history
     conversation_history = smart_conversation_history(req.history)
+    conversation_history = conversation_history or "This is the first question."
 
-    if not conversation_history:
-        conversation_history = "This is the first question."
+    theme_block = f"Current theme under discussion: {req.current_theme or 'N/A'}\n\n"
+    theme_instruction = f"""
+You must explore one theme from the list below. Try to infer the current theme from the conversation.
+
+Preset themes:
+{chr(10).join(PRESET_THEMES)}
+
+Only ask at most 2 questions per theme. If the current theme has been asked about twice already, you must switch to another one.
+
+Previously explored themes and counts:
+{req.theme_counts}
+
+Choose a new theme if needed, but keep transitions smooth and natural.
+"""
 
     prompt = f"""
-You are a warm, perceptive college essay counselor looking to reveal themes the student you interview can use in their college essays.
+You are a warm, perceptive assistant to a college counselor. The counselor has asked you to interview the student using preset questions and their CV.
+
+Your goals:
+- Ask about the student’s academic interests, extracurriculars, personal background.
+- Ask follow-ups that reveal motivation and character.
+- Try to uncover a meaningful essay theme in each response.
 
 Student's CV:
 {req.cv_text}
 
-The interview track is: {req.track}.
-
-Preset question to base your next move on:
+Track: {req.track}
+Preset question for context:
 "{selected_preset}"
 
 Conversation so far:
 {conversation_history}
 
-Important Rules:
-- NEVER repeat a topic already deeply discussed.
-- Build naturally based on student's previous answers.
-- If a question has already been covered, invent a **better** one exploring deeper insight, without losing relevance.
-- Stay strictly related to the selected track unless an extraordinary personal connection emerges.
-- Phrase your questions conversationally, like a real human counselor talking warmly to a student.
-- Prefer open-ended questions that encourage reflection and storytelling.
-- Only output ONE question, no lists or options.
+{theme_block}
+{theme_instruction}
 
-Reminder:
-- Stay human, curious, perceptive.
-- Adapt wording naturally using clues from CV and past conversation.
+Rules:
+- Ask only ONE question per turn.
+- NEVER repeat what has already been deeply discussed.
+- Avoid listing options or quoting themes.
+- Prefer open-ended, conversational questions.
+- Adapt to the student’s tone and interests.
 """
 
     response = client.chat.completions.create(
@@ -184,8 +201,26 @@ Reminder:
         ]
     )
     question = response.choices[0].message.content.strip()
-    return {"question": question}
 
+    # Use second call to infer theme
+    theme_response = client.chat.completions.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": "You are a classifier that identifies essay themes from conversation."},
+            {"role": "user", "content": f"Given this conversation:\n{conversation_history}\n\nPick one most relevant theme from this list:\n{chr(10).join(PRESET_THEMES)}"}
+        ]
+    )
+    guessed_theme = theme_response.choices[0].message.content.strip()
+
+    theme_counts = req.theme_counts or {}
+    theme_counts[guessed_theme] = theme_counts.get(guessed_theme, 0) + 1
+
+    # Return data
+    return {
+        "question": question,
+        "current_theme": guessed_theme,
+        "theme_counts": theme_counts
+    }
 
 @app.post("/speak")
 async def speak_text(request: dict):
@@ -209,7 +244,6 @@ async def speak_text(request: dict):
             status_code=500,
             content={"error": f"Speech generation failed: {str(e)}"}
         )
-
 
 @app.post("/transcribe")
 async def transcribe_audio(file: UploadFile = File(...)):
