@@ -169,16 +169,21 @@ async def next_question(req: QuestionRequest):
     
     academic_fields = interest_response.choices[0].message.content.strip()
     logging.info(f"Extracted academic fields: {academic_fields}")
+    
+    field_list = [f.strip() for f in academic_fields.split(",") if f.strip()]
+    short_fields = ", ".join(field_list[:3]) 
 
     
-    intro_line = (
-    f"Looks like {academic_fields} are your main academic interests. "
-    f"Could you tell me about three or four of your favourite subjects, related or unrelated to those interests?"
-    if academic_fields and academic_fields.lower() != "none"
-    else "Could you tell me about three or four of your favourite subjects, whether or not they relate to what you want to study?"
+    if short_fields:
+        intro_line = (
+        f"Looks like {short_fields} are your main academic interests. "
+        "Could you tell me about three or four of your favourite subjects, related or unrelated to those interests?"
+    )
+    else:
+        intro_line = (
+        "Could you tell me about three or four of your favourite subjects, whether or not they relate to what you want to study?"
     )
 
-    
     
 
     # Pick the prompt based on the phase
