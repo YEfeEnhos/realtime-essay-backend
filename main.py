@@ -4,15 +4,14 @@ from fastapi.responses import StreamingResponse, JSONResponse
 from pydantic import BaseModel
 from openai import OpenAI
 import pdfplumber
-import random
 import os
+import random
 
-# Initialize OpenAI client
+# --- Initialize OpenAI ---
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+# --- FastAPI setup ---
 app = FastAPI()
-
-# Allow CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -21,7 +20,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- Placeholder Preset Interview Themes and Questions ---
+# --- Preset Themes (leave empty for now) ---
 PRESET_THEMES = [
     "Overcoming rigid expectations & redefining success",
     "Heritage & family history as a source of purpose",
@@ -43,6 +42,7 @@ PRESET_THEMES = [
     "Identity & self‑worth beyond external validation"
 ]
 
+# --- Preset Questions (leave empty for now) ---
 PRESETS = {
     "Academic Interests": [
         "What are your main academic interests? Could you tell me about three or four of your favourite subjects?",
@@ -111,21 +111,21 @@ PRESETS = {
     ]
 }
 
+# --- Configuration ---
 MAX_CHAR_HISTORY = 3000
 MAX_TURNS = 5
 
-
-# --- Request Models ---
+# --- Data Schema ---
 class QuestionRequest(BaseModel):
     track: str
     cv_text: str
-    history: list  # list of {"question": ..., "answer": ...}
+    history: list
+    is_rapid_fire: bool
     theme_counts: dict = {}
     current_theme: str = ""
     academic_fields: list = []
 
-
-# --- Utilities ---
+# --- Utility: History Trimming ---
 def smart_conversation_history(history):
     recent_history = history[-MAX_TURNS:]
     text = "\n".join([f"Q: {turn['question']}\nA: {turn['answer']}" for turn in recent_history])
@@ -137,108 +137,134 @@ def smart_conversation_history(history):
         return ""
     return text
 
-
-# --- Endpoints ---
+# --- Endpoint: Upload CV ---
 @app.post("/upload-cv")
 async def upload_cv(file: UploadFile = File(...)):
     contents = await file.read()
     with open("temp_cv.pdf", "wb") as f:
         f.write(contents)
-
     with pdfplumber.open("temp_cv.pdf") as pdf:
         text = "\n".join([page.extract_text() for page in pdf.pages if page.extract_text()])
+    return {"text": text}
 
-    # Extract academic fields
-    try:
-        field_resp = client.chat.completions.create(
-            model="gpt-4",
-            messages=[
-                {"role": "system", "content": "You extract academic fields from CVs."},
-                {"role": "user", "content": f"From this CV, list 2 or 3 academic fields (like computer science, math, biology) the student is most focused on:\n{text}"}
-            ]
-        )
-        field_list = field_resp.choices[0].message.content.strip()
-    except Exception as e:
-        field_list = "Not available"
-
-    return {"text": text, "fields": field_list}
-
-
+# --- Endpoint: Get Next Question ---
 @app.post("/next-question")
 async def next_question(req: QuestionRequest):
-    track_questions = PRESETS.get(req.track, [])
-    selected_preset = random.choice(track_questions) if track_questions else ""
     conversation_history = smart_conversation_history(req.history)
     conversation_history = conversation_history or "This is the first question."
+    track_questions = PRESETS.get(req.track, [])
+    selected_preset = random.choice(track_questions) if track_questions else ""
 
-    # --- Theme Identification from Last Exchange ---
-    last_turn = req.history[-1] if req.history else None
-    last_exchange = f"Q: {last_turn['question']}\nA: {last_turn['answer']}" if last_turn else ""
+    # Pick the prompt based on the phase
+    if req.is_rapid_fire:
+        prompt = f"""
+You are a warm, perceptive assistant to a college counselor. Your job is to help the counselor gather **factual information** about the student’s academic background during this **rapid-fire round** of an interview.
 
-    theme_response = client.chat.completions.create(
-        model="gpt-4",
-        messages=[
-            {"role": "system", "content": "You are a theme classifier."},
-            {"role": "user", "content": f"Identify the most relevant college essay theme in this Q/A:\n{last_exchange}\n\nPick from this list:\n{chr(10).join(PRESET_THEMES)}\nReturn one theme or 'None'."}
-        ]
-    )
-    guessed_theme = theme_response.choices[0].message.content.strip()
-    if guessed_theme.lower() == "none":
-        guessed_theme = ""
+🎯 Your job is only to gather **objective details**:
+- What subjects the student likes.
+- What they’ve done in school/summer school for each subject.
+- What they've done outside the classroom (research, projects, internships).
+- For each subject, ask 2–3 clear and factual questions.
+- DO NOT explore feelings, reflections, motivations, or themes yet.
 
-    theme_counts = req.theme_counts or {}
-    if guessed_theme:
-        theme_counts[guessed_theme] = theme_counts.get(guessed_theme, 0) + 1
+CV of the student:
+{req.cv_text}
 
-    must_switch_theme = theme_counts.get(guessed_theme, 0) >= 2
+Conversation so far:
+{conversation_history}
 
-    theme_instruction = f"""
-Themes so far: {theme_counts}
-Current theme: {guessed_theme or 'None'}
+Instructions:
+1. Begin with:
+   “Looks like {', '.join(req.academic_fields) if req.academic_fields else '[identify]'} are your main academic interests. Could you tell me about three or four of your favourite subjects, related or unrelated to those interests?”
 
-{"Switch to a new unexplored theme." if must_switch_theme else "Continue on current theme if possible."}
+2. Then go subject by subject. For each one, ask in this style:
+- “How have you pursued this subject at school or during summer school?”
+   If possible, use the CV and ask:  
+   “Looks like you studied this at [CV content]. Tell me more?”
+
+- “Have you done any research or projects related to this subject outside class?”
+   If possible, use the CV and ask:  
+   “I noticed you interned at [CV content] — was that related? Tell me more.”
+
+3. Ask for concrete examples (project names, courses, grades, settings), but NOT reflections.
+
+4. After 2–3 questions per subject, transition smoothly:
+   “Thanks. Can we move on to the next subject: [next_subject]?”  
+   (This part is handled by the frontend via a Next button.)
+
+⚠️ Important:
+- Ask ONE simple and factual question at a time.
+- Stay focused on information-gathering only.
+- DO NOT mention themes, motivations, or essay ideas yet.
 """
+  # <- use your rapid-fire prompt here
+    else:
+        prompt = f"""
+You are a warm, perceptive assistant to a college counselor. The college counselor has asked you to interview the student, taking the preset questions as a starting point. The college counselor will use the interview transcript to brainstorm potential college application essay topics with the student.
 
-    # --- Prompt Assembly ---
-    prompt = f"""
-You are a warm, perceptive assistant to a college counselor. The counselor has asked you to interview the student.
-
-Your goals:
-- Ask about the student’s academic interests, extracurriculars, personal background.
-- Ask follow-ups that reveal motivation and character.
-- Discover college essay themes that fit the student.
+Your task is to:
+a. Gather as much detail as possible about the student’s academic interests, extracurricular involvement and personal background. These details are necessary for the counselor.
+b. Build on these details with further questions about the student’s motivation and character as it relates to the subject being discussed.
+c. Search for potential themes in the student’s answers, taking the preset themes as a starting point, and expanding upon these if another theme not covered in the preset theme list emerges. Further themes can range from intimate, inner‑growth narratives to large‑scale activism and intellectual exploration.
 
 Student's CV:
 {req.cv_text}
 
-Academic fields of interest:
-{", ".join(req.academic_fields) if req.academic_fields else "N/A"}
+Interview Track: {req.track}
 
-Track: {req.track}
-Preset question for context:
+Preset question to base your next move on:
 "{selected_preset}"
 
 Conversation so far:
 {conversation_history}
 
-{theme_instruction}
+Themes discussed and their counts:
+{req.theme_counts}
 
-Guidelines:
-- Ask only ONE question at a time.
-- NEVER repeat what has already been discussed.
-- Don't say "theme" or list themes.
-- Prefer open-ended questions.
-- Adapt to the student’s tone and academic interests.
+Current theme under discussion: {req.current_theme or 'None'}
+
+List of preset themes:
+{chr(10).join(PRESET_THEMES)}
+
+Important Rules:
+- Ask at most TWO questions per theme. After two, switch to a new theme.
+- NEVER repeat a topic already deeply discussed.
+- Build naturally based on student's previous answers.
+- If a question has already been covered, invent a *better* one exploring deeper insight, without losing relevance.
+- Stay strictly related to the selected track unless a powerful personal connection emerges.
+- Phrase your questions conversationally, like a real human counselor talking warmly to a student.
+- Prefer open-ended questions that encourage reflection and storytelling.
+- Only output ONE question, no lists or options.
+
+Reminder:
+- Stay human, curious, and perceptive.
+- Adapt wording naturally using clues from the CV and past conversation.
 """
+  # <- use your regular prompt here
 
     response = client.chat.completions.create(
         model="gpt-4",
         messages=[
-            {"role": "system", "content": "You are a perceptive college essay interviewer."},
+            {"role": "system", "content": "You are a college essay coach helping a student discover themes."},
             {"role": "user", "content": prompt}
         ]
     )
     question = response.choices[0].message.content.strip()
+
+    guessed_theme = ""
+    theme_counts = req.theme_counts or {}
+
+    # Only guess theme in regular phase
+    if not req.is_rapid_fire:
+        theme_response = client.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You are a classifier that identifies essay themes from conversation."},
+                {"role": "user", "content": f"Given this conversation:\n{conversation_history}\n\nPick one most relevant theme from this list:\n{chr(10).join(PRESET_THEMES)}"}
+            ]
+        )
+        guessed_theme = theme_response.choices[0].message.content.strip()
+        theme_counts[guessed_theme] = theme_counts.get(guessed_theme, 0) + 1
 
     return {
         "question": question,
@@ -246,7 +272,7 @@ Guidelines:
         "theme_counts": theme_counts
     }
 
-
+# --- Endpoint: Speak ---
 @app.post("/speak")
 async def speak_text(request: dict):
     text = request.get("text")
@@ -260,21 +286,22 @@ async def speak_text(request: dict):
             voice="nova",
             response_format="mp3"
         )
-        return StreamingResponse(speech.iter_bytes(), media_type="audio/mpeg")
+        return StreamingResponse(
+            speech.iter_bytes(),
+            media_type="audio/mpeg"
+        )
     except Exception as e:
-        return JSONResponse(status_code=500, content={"error": f"TTS failed: {str(e)}"})
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Speech generation failed: {str(e)}"}
+        )
 
-
+# --- Endpoint: Transcribe Audio ---
 @app.post("/transcribe")
 async def transcribe_audio(file: UploadFile = File(...)):
     audio = await file.read()
     with open("temp_audio.wav", "wb") as f:
         f.write(audio)
-
     with open("temp_audio.wav", "rb") as f:
-        transcript = client.audio.transcriptions.create(
-            model="whisper-1",
-            file=f
-        )
-
+        transcript = client.audio.transcriptions.create(model="whisper-1", file=f)
     return {"text": transcript.text}
