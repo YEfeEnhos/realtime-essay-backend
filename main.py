@@ -172,6 +172,9 @@ async def next_question(req: QuestionRequest):
     
     field_list = [f.strip() for f in academic_fields.split(",") if f.strip()]
     short_fields = ", ".join(field_list[:3]) 
+    
+    logging.info(f"Short fields: {short_fields}")
+    
 
     
     if short_fields:
@@ -206,7 +209,7 @@ Conversation so far:
 
 Instructions:
 1. Begin with:
-   {intro_line}
+   Looks like {short_fields} are your main academic interests.
 
 2. Then go subject by subject. For each one, ask in this style:
 - “How have you pursued this subject at school or during summer school?”
