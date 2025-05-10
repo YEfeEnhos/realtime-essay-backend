@@ -166,7 +166,10 @@ async def next_question(req: QuestionRequest):
     )
     logging.info(f"CV Text: {req.cv_text}")
     logging.info(f"Interest response: {interest_response}")
+    
     academic_fields = interest_response.choices[0].message.content.strip()
+    logging.info(f"Extracted academic fields: {academic_fields}")
+
     
     intro_line = (
     f"Looks like {academic_fields} are your main academic interests. "
