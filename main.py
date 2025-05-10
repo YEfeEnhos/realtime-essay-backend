@@ -114,8 +114,8 @@ PRESETS = {
 }
 
 # --- Configuration ---
-MAX_CHAR_HISTORY = 3000
-MAX_TURNS = 5
+MAX_CHAR_HISTORY = 4000
+MAX_TURNS = 8
 
 # --- Data Schema ---
 class QuestionRequest(BaseModel):
@@ -166,15 +166,21 @@ You are a warm, perceptive assistant to a college counselor. Your job is to help
 
 Your job is only to gather **objective details** and follow the given instructions.
 
+
+
+
 CV of the student:
 {req.cv_text}
 
 Conversation so far:
 {conversation_history}
 
-Instructions follow each step:
+To understand which step you are in check the conversation history and the last question you asked. 
+
+Steps to follow (instructions):
 1. Begin with:
    Looks like [Extract 2-3 broad academic interests from the students CV] are your main academic interests. Could you tell me about three or four of your favourite subjects, related or unrelated to those interests?
+
 
 2. When the student tells their academic interests choose one of them and ask: “How have you pursued this subject at school or during summer school?” If possible, use the CV and instead ask: “Looks like you studied this at [From the CV mention maximum 3 courses the student took]. Tell me more?”
 
@@ -182,7 +188,7 @@ Instructions follow each step:
    
    Then ask: “Is there anything more you want to add regarding this subject? If not lets move on.”  
     
-   If the student says yes, ask: "What else would you like to add?” If the student says no, repeat the process by choosing the next subject.
+   If the student says yes, ask: "What else would you like to add?” If the student says no, repeat the process by choosing the next subject which you can find in the conversation history.
 
 ⚠️ Important:
 - Ask ONE simple and factual question at a time.
