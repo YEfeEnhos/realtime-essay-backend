@@ -156,6 +156,10 @@ async def next_question(req: QuestionRequest):
     conversation_history = conversation_history or "This is the first question."
     track_questions = PRESETS.get(req.track, [])
     selected_preset = random.choice(track_questions) if track_questions else ""
+    themes = PRESET_THEMES
+    
+    logging.info(f"track questions: {track_questions}")
+    logging.info(f"themes: {themes}")
     
     
 
@@ -182,7 +186,7 @@ Steps to follow (instructions):
    Then: If possible, use the CV and ask:“I especially would like to know more about [From the CV select 2-3 research, internships or outisde of class activities related to the current academic field of discussion]? Tell me more about them.” If not (no cv provided case) simply ask: “Have you done any research, internships or outisde of class activities related to [subject name] subject outside class?” 
    
    Then ask: “Is there anything more you want to add regarding this subject? If not lets move on.”  
-    - If the student says yes, ask: "What else would you like to add?” If the student says no, repeat the process by choosing the next subject which you can find in the conversation history. 
+    - If the student says yes, ask: "What else would you like to add?” If the student says no and there are subjects you have not discussed outlined by the student, repeat the process by choosing the next subject which you can find in the conversation history. 
    
 3. If you have covered all subjects, ask: “Thank you. I now have enough information to move on to broader questions if you have nothing to add.”
 
@@ -209,7 +213,7 @@ If the student has not provided a CV pay more attention to conversation history 
 Interview Track: {req.track}
 
 Preset question to base your next move on:
-"{selected_preset}"
+"{track_questions}"
 
 Pick the most relevant preset question from the list according to the conversation history and the CV.
 
@@ -222,10 +226,10 @@ Themes discussed and their counts:
 Current theme under discussion: {req.current_theme or 'None'}
 
 List of preset themes:
-{chr(10).join(PRESET_THEMES)}
+{themes}
 
 Important Rules:
-- Ask at most TWO questions per theme. After two, switch to a new theme.
+- Ask at most TWO questions per theme. After two, switch to a new theme. To understand how many times the theme has been discussed check the theme counts and conversation history.
 - NEVER repeat a topic already deeply discussed.
 - Build naturally based on student's previous answers.
 - If a question has already been covered, invent a *better* one exploring deeper insight, without losing relevance.
@@ -233,6 +237,7 @@ Important Rules:
 - Phrase your questions conversationally, like a real human counselor talking warmly to a student.
 - Prefer open-ended questions that encourage reflection and storytelling.
 - Only output ONE question, no lists or options.
+- Do nto begin with "Q:".
 
 Reminder:
 - Stay human, curious, and perceptive.
