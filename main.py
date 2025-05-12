@@ -1,9 +1,9 @@
-from fastapi import FastAPI, UploadFile, File
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse, JSONResponse
-from pydantic import BaseModel
-from openai import OpenAI
-import pdfplumber
+from fastapi import FastAPI, UploadFile, File # type: ignore
+from fastapi.middleware.cors import CORSMiddleware # type: ignore
+from fastapi.responses import StreamingResponse, JSONResponse # type: ignore
+from pydantic import BaseModel # type: ignore
+from openai import OpenAI # type: ignore
+import pdfplumber # type: ignore
 import os
 import random
 import logging
@@ -82,8 +82,7 @@ PRESETS = {
         "Do you have any anecdotes about an activity that you might want to share? Anything that stands out to you?"
     ],
     "Family & Background": [
-        "How do your friends or people closest to you describe you?",
-        "Do you agree?",
+        "How do your friends or people closest to you describe you? Do you agree?",
         "Which parts of your character do you like, and which parts do you wish you could change?",
         "Tell me about your family. This can be your immediate family or you can also talk about your extended family if they are important to you.",
         "Who is your favourite person in your family? Tell me more about your relationship with them.",
@@ -101,10 +100,7 @@ PRESETS = {
         "What is your gender or sexual identity, if you feel like sharing?",
         "Is your gender or sexual identity important to you? How has it informed your perspective?",
         "Are there any obstacles you have struggled with or overcome in your personal or family life/as a community?",
-        "Are you engaged with politics and/or activism or do you stay out of it?",
-        "If you are engaged, what issues do you feel most passionate about?",
-        "What does activism mean to you, and how have you been involved?",
-        "If you stay out of politics, why is this the case and is this important to you?",
+        "What does activism mean to you, how have you been involved, and hat issues do you feel most passionate about? If you stay out of politics, why is this the case and is this important to you?",
         "How has your upbringing informed who you are today and how you see your future?",
         "Do you have any worries about your future?",
         "Try to imagine yourself sitting in a small university classroom and having a discussion about your favourite subject. What perspective do you think you will bring?",
@@ -244,7 +240,7 @@ If the CV is provided, you may suggest the top 5 **most impressive and diverse**
 “Thanks for sharing those. I now can move on or I can hear about another activity. If you want to talk about a new activity please state it or else say lets move on.”
 
 - If the student says yes and states an activity, do step 4 again for that activity.
-- If the student says no, say: “Thank you. Extracurricular activities interview is done!” 
+- If the student says no, say: “Thank you. That’s the end of the extracurricular interview!”
 
 ⚠️ Important:
 - Look at the conversation history to determine the step and which activity you’re on.
