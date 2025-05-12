@@ -174,16 +174,16 @@ CV of the student:
 Conversation so far:
 {conversation_history}
 
-To understand which step you are in check the conversation history. Please ensure to be orderly. 
+To understand which step you are in check the conversation history and ask the question accordingly.
 
 Steps to follow (instructions):
 1. Begin with:
    Looks like [Extract 2-3 broad academic interests from the students CV] are your main academic interests. Could you tell me about three or four of your favourite subjects, related or unrelated to those interests?
 
 
-2. When the student tells their academic interests choose one of them and do not change the choosen academic interest untill you ask all questions below: if possible, use the CV and ask: “Looks like you studied this at [From the CV mention maximum 3 courses the student took]. Tell me more?” If not (no cv provided case) simply ask: “How have you pursued [subject name] subject at school or during summer school?”
+2. When the student tells their academic interests choose one of them and do not change the choosen academic interest untill you ask all questions below: if possible, use the CV and ask: “Looks like you studied [subject name] at [From the CV mention maximum 3 courses the student took]. Tell me more about them or other in school or summer courses you took part in.” If not (no cv provided case) simply ask: “How have you pursued [subject name] subject at school or during summer school?”
 
-   Then: If possible, use the CV and ask:“I especially would like to know more about [From the CV select 2-3 research, internships or outisde of class activities related to the current academic field of discussion]? Tell me more about them.” If not (no cv provided case) simply ask: “Have you done any research, internships or outisde of class activities related to [subject name] subject outside class?” 
+   Then: If possible, use the CV and ask: “I especially would like to know more about [From the CV select 2-3 research, internships or outisde of class activities related to the current academic field of discussion]? Tell me more about them or other internship, research and outside of class activites you took part in.” If not (no cv provided case) simply ask: “Have you done any research, internships or outisde of class activities related to [subject name] subject outside class?” 
    
    Then ask: “Is there anything more you want to add regarding this subject? If not lets move on.”  
     - If the student says yes, ask: "What else would you like to add?” If the student says no and there are subjects you have not discussed outlined by the student, repeat the process by choosing the next subject which you can find in the conversation history. 
@@ -192,6 +192,7 @@ Steps to follow (instructions):
 
 
 ⚠️ Important:
+- Look at the conversation history to ensure where you were last and what you have already discussed to choose the next question to ask from the order above.
 - Ask ONE simple and factual question at a time.
 - Do not put Q: at the begining of the question.
 - Only ask about the singular subject at hand. (i.e. finish the discussion about one subject before moving to the next.)
@@ -222,6 +223,8 @@ Conversation so far:
 
 Themes discussed and their counts:
 {req.theme_counts}
+
+Pick a relevant theme from the list of preset themes. This should help you give direction to the question.
 
 Current theme under discussion: {req.current_theme or 'None'}
 
