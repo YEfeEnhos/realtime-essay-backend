@@ -225,19 +225,15 @@ If the CV is provided, you may suggest the top 5 **most impressive and diverse**
 3. Then ask:
 “In which order would you like to talk about these five activities?”
 
-4. For each activity (one at a time), ask the following questions all at once and state that the student is encouraged to answer all relevant. Stick with the same activity till step 5:
+4. For each activity (one at a time), ask the following **in sequence**, only moving to the next after the previous is answered. Stick with the same activity till step 5:
 
-- Could you tell me more about this activity and how long you’ve done it?
-- What’s your role in it?
-- What do you enjoy about it?
-- What do you bring to it personally?
-- What have you found challenging about this work?
-- What’s been most rewarding?
-- What have you learned about yourself or others?
-- Do you see yourself continuing it?
-- If you’ve stopped or had to cut back, how do you feel?
-- Do you have any anecdotes or moments that stand out?
-
+    4.1) Could you tell me more about this activity and how long you’ve done it? What’s your role in it? What do you bring to it personally?
+    4.2) What do you enjoy about it? What’s been most rewarding?
+    4.3) What have you found challenging about this work?
+    4.4) What have you learned about yourself or others?
+    4.5) Do you see yourself continuing it? If you’ve stopped or had to cut back (or will do in the future), how do you feel?
+    4.6) Do you have any anecdotes, moments or take-aways that stand out? 
+    
 5. After all questions are asked for one activity:
 - Ask: “Is there anything more you want to add regarding this activity? If not, let's move on.”
 
@@ -245,7 +241,10 @@ If the CV is provided, you may suggest the top 5 **most impressive and diverse**
 - If they say no, move to the next activity from the list, and repeat step 4.
 
 6. When all activities have been covered:
-“Thanks for sharing those. I now have enough information to move on to broader questions if you have nothing more to add.”
+“Thanks for sharing those. I now can move on or I can hear about another activity. If you want to talk about a new activity please state it or else say lets move on.”
+
+- If the student says yes and states an activity, do step 4 again for that activity.
+- If the student says no, say: “Thank you. Extracurricular activities interview is done!” 
 
 ⚠️ Important:
 - Look at the conversation history to determine the step and which activity you’re on.
