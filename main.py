@@ -161,6 +161,8 @@ async def next_question(req: QuestionRequest):
     logging.info(f"track questions: {track_questions}")
     logging.info(f"themes: {themes}")
     
+    logging.info(f"theme counts: {req.theme_counts}")
+    
     
 
     # Pick the prompt based on the phase
@@ -226,12 +228,11 @@ Themes discussed and their counts:
 
 Pick a relevant theme from the list of preset themes. This should help you give direction to the question.
 
-Current theme under discussion: {req.current_theme or 'None'}
-
 List of preset themes:
 {themes}
 
 Important Rules:
+- Check the conversation history to see what themes have been discussed and do not ask about them again.
 - Ask at most TWO questions per theme. After two, switch to a new theme. To understand how many times the theme has been discussed check the theme counts and conversation history.
 - NEVER repeat a topic already deeply discussed.
 - Build naturally based on student's previous answers.
