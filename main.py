@@ -204,9 +204,8 @@ Steps to follow (instructions):
     else:
         prompt = f"""
 Your task is to:
-a. Gather as much detail as possible about the student’s academic interests, extracurricular involvement and personal background. These details are necessary for the counselor.
+a. Gather as much detail as possible about the student’s academic interests or extracurricular involvement or personal background (depending on the choosen track). These details are necessary for the counselor.
 b. Build on these details with further questions about the student’s motivation and character as it relates to the subject being discussed.
-c. Search for potential themes in the student’s answers, taking the preset themes as a starting point, and expanding upon these if another theme not covered in the preset theme list emerges. Further themes can range from intimate, inner‑growth narratives to large‑scale activism and intellectual exploration.
 
 Student's CV:
 {req.cv_text}
@@ -231,9 +230,11 @@ Pick a relevant theme from the list of preset themes. This should help you give 
 List of preset themes:
 {themes}
 
-Important Rules:
-- Check the conversation history to see what themes have been discussed and do not ask about them again.
+Instructions:
+- Check the conversation history and theme counts to see what themes have been discussed.
 - Ask at most TWO questions per theme. After two, switch to a new theme. To understand how many times the theme has been discussed check the theme counts and conversation history.
+- Prioritize themes that have NOT yet been discussed.
+- Naturally transition between themes; do not mention the theme name.
 - NEVER repeat a topic already deeply discussed.
 - Build naturally based on student's previous answers.
 - If a question has already been covered, invent a *better* one exploring deeper insight, without losing relevance.
@@ -241,7 +242,12 @@ Important Rules:
 - Phrase your questions conversationally, like a real human counselor talking warmly to a student.
 - Prefer open-ended questions that encourage reflection and storytelling.
 - Only output ONE question, no lists or options.
-- Do nto begin with "Q:".
+- Do not begin with "Q:".
+
+⚠️ Example transitions (DO NOT copy exactly):
+- “Let’s shift gears a bit...”
+- “On a slightly different note...”
+- “I’d love to hear about something else that shaped you…”
 
 Reminder:
 - Stay human, curious, and perceptive.
@@ -270,8 +276,15 @@ Reminder:
                 {"role": "user", "content": f"Given this conversation:\n{conversation_history}\n\nPick one most relevant theme from this list:\n{chr(10).join(PRESET_THEMES)}"}
             ]
         )
-        guessed_theme = theme_response.choices[0].message.content.strip()
-        theme_counts[guessed_theme] = theme_counts.get(guessed_theme, 0) + 1
+        raw_theme = theme_response.choices[0].message.content.strip()
+        guessed_theme = next(
+            (theme for theme in PRESET_THEMES if theme in raw_theme),
+            None
+        )
+        if guessed_theme:
+            theme_counts[guessed_theme] = theme_counts.get(guessed_theme, 0) + 1
+        else:
+            logging.warning(f"Could not match theme in response: {raw_theme}")
 
     return {
         "question": question,
