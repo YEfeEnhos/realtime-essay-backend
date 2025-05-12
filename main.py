@@ -266,7 +266,7 @@ Preset question to base your next move on:
 "{track_questions}"
 
 If the academic track is choosen ask at least once about challanges and obstacles in the academic life of the student.
-If the background and family track is choosen ignore the CV and try to ask all of the preset questions.
+If the background and family track is choosen ignore the CV and ask all of the preset questions in order. Check the conversation history to see the last question you asked. Do not skip any question or repeat any question already asked.
 
 Pick the most relevant preset question from the list according to the conversation history and the CV.
 
