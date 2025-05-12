@@ -218,7 +218,7 @@ Steps to follow (instructions):
 1. { "If no CV is provided, start with: “What extracurricular activities or clubs are you involved in? This could be sport, volunteer work, community engagement, arts/culture, or simply what you like doing in your free time. Could you start by listing your most important extracurricular activities?”" if not req.cv_text.strip() else "Skip this step because a CV has been provided." }
 
 2. After extracurriculars are listed:
-“Could you pick the most important 5 activities you would like to talk about today?”
+Depending on the list the student provides say, “To me [5 **most impressive and diverse** items from the ones student listed] stand out. What do you think? Could you pick the most important 5 activities you would like to talk about today?” (Ensure to highlight that they should be the most important ones.)
 If the CV is provided, you may suggest the top 5 **most impressive and diverse** items, avoiding overlapping roles (e.g., two research projects).
 
 3. Then ask:
