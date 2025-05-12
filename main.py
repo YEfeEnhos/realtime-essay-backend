@@ -166,7 +166,7 @@ async def next_question(req: QuestionRequest):
     
 
     # Pick the prompt based on the phase
-    if req.is_rapid_fire:
+    if req.is_rapid_fire and req.track == "Academic Interests":
         prompt = f"""
 Your job is to gather **objective details** and follow the given instructions.
 
@@ -201,6 +201,58 @@ Steps to follow (instructions):
 - Stay focused on information-gathering only.
 """
   # <- use your rapid-fire prompt here
+    elif req.is_rapid_fire and req.track == "Extracurricular Activities":
+        prompt = fprompt = f"""
+Your job is to gather **objective details** and follow the given instructions.
+
+CV of the student:
+{req.cv_text or "None provided."}
+
+Conversation so far:
+{conversation_history}
+
+To understand which step you are in, check the conversation history and ask the next appropriate question.
+
+Steps to follow (instructions):
+
+1. { "If no CV is provided, start with: “What extracurricular activities or clubs are you involved in? This could be sport, volunteer work, community engagement, arts/culture, or simply what you like doing in your free time. Could you start by listing your most important extracurricular activities?”" if not req.cv_text.strip() else "Skip this step because a CV has been provided." }
+
+2. After extracurriculars are listed:
+“Could you pick the most important 5 activities you would like to talk about today?”
+If the CV is provided, you may suggest the top 5 **most impressive and diverse** items, avoiding overlapping roles (e.g., two research projects).
+
+3. Then ask:
+“In which order would you like to talk about these five activities?”
+
+4. For each activity (one at a time), ask the following **in sequence**, only moving to the next after the previous is answered. Stick with the same activity until all are asked:
+
+- Could you tell me more about this activity and how long you’ve done it?
+- What’s your role in it?
+- What do you enjoy about it?
+- What do you bring to it personally?
+- What have you found challenging about this work?
+- What’s been most rewarding?
+- What have you learned about yourself or others?
+- Do you see yourself continuing it?
+- If you’ve stopped or had to cut back, how do you feel?
+- Do you have any anecdotes or moments that stand out?
+
+5. After all questions are asked for one activity:
+- Ask: “Is there anything more you want to add regarding this activity? If not, let's move on.”
+
+- If the student says yes, ask: "What else would you like to add?”
+- If they say no, move to the next activity from the list, and repeat step 4.
+
+6. When all activities have been covered:
+“Thanks for sharing those. I now have enough information to move on to broader questions if you have nothing more to add.”
+
+⚠️ Important:
+- Look at the conversation history to determine the step and which activity you’re on.
+- Ask only ONE factual question per turn.
+- NEVER jump to another activity or step prematurely.
+- Do not repeat or rephrase the same question if it has already been asked.
+- Avoid putting 'Q:' in front of your question.
+"""
     else:
         prompt = f"""
 Your task is to:
@@ -216,6 +268,9 @@ Interview Track: {req.track}
 
 Preset question to base your next move on:
 "{track_questions}"
+
+If the academic track is choosen ask at least once about challanges and obstacles in the academic life of the student.
+If the background and family track is choosen ignore the CV and try to ask all of the preset questions.
 
 Pick the most relevant preset question from the list according to the conversation history and the CV.
 
@@ -234,20 +289,14 @@ Instructions:
 - Check the conversation history and theme counts to see what themes have been discussed.
 - Ask at most TWO questions per theme. After two, switch to a new theme. To understand how many times the theme has been discussed check the theme counts and conversation history.
 - Prioritize themes that have NOT yet been discussed.
-- Naturally transition between themes; do not mention the theme name.
+- If this is not the first question, before generating a question check the conversation history to give 1-2 lines of reflection (something like that sounds interesting) to the students response and then ask the question.
 - NEVER repeat a topic already deeply discussed.
 - Build naturally based on student's previous answers.
-- If a question has already been covered, invent a *better* one exploring deeper insight, without losing relevance.
 - Stay strictly related to the selected track unless a powerful personal connection emerges.
 - Phrase your questions conversationally, like a real human counselor talking warmly to a student.
 - Prefer open-ended questions that encourage reflection and storytelling.
 - Only output ONE question, no lists or options.
 - Do not begin with "Q:".
-
-⚠️ Example transitions (DO NOT copy exactly):
-- “Let’s shift gears a bit...”
-- “On a slightly different note...”
-- “I’d love to hear about something else that shaped you…”
 
 Reminder:
 - Stay human, curious, and perceptive.
