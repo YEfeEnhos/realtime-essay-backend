@@ -211,20 +211,20 @@ CV of the student:
 Conversation so far:
 {conversation_history}
 
-To understand which step you are in, check the conversation history and ask the next appropriate question.
+To understand which step you are in check the conversation history and ask the question accordingly. Make sure to ask the questions in the order below and not repeat.
 
 Steps to follow (instructions):
 
 1. { "If no CV is provided, start with: “What extracurricular activities or clubs are you involved in? This could be sport, volunteer work, community engagement, arts/culture, or simply what you like doing in your free time. Could you start by listing your most important extracurricular activities?”" if not req.cv_text.strip() else "Skip this step because a CV has been provided." }
 
-2. After extracurriculars are listed:
+2. When student list their activities or provided a CV:
 Depending on the list the student provides say, “To me [5 **most impressive and diverse** items from the ones student listed] stand out. What do you think? Could you pick the most important 5 activities you would like to talk about today?” (Ensure to highlight that they should be the most important ones.)
 If the CV is provided, you may suggest the top 5 **most impressive and diverse** items, avoiding overlapping roles (e.g., two research projects).
 
 3. Then ask:
 “In which order would you like to talk about these five activities?”
 
-4. For each activity (one at a time), ask the following **in sequence**, only moving to the next after the previous is answered. Stick with the same activity until all are asked:
+4. For each activity (one at a time), ask the following questions all at once and state that the student is encouraged to answer all relevant. Stick with the same activity till step 5:
 
 - Could you tell me more about this activity and how long you’ve done it?
 - What’s your role in it?
