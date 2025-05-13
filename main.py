@@ -198,7 +198,7 @@ Steps to follow (instructions):
 """
   # <- use your rapid-fire prompt here
     elif req.is_rapid_fire and req.track == "Extracurricular Activities":
-        prompt = fprompt = f"""
+        prompt = f"""
 Your job is to gather **objective details** and follow the given instructions.
 
 CV of the student:
