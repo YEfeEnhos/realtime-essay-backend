@@ -122,6 +122,7 @@ class QuestionRequest(BaseModel):
     theme_counts: dict = {}
     current_theme: str = ""
     academic_fields: list = []
+    background_index: int = 0
 
 # --- Utility: History Trimming ---
 def smart_conversation_history(history):
@@ -250,20 +251,16 @@ If the CV is provided, you may suggest the top 5 **most impressive and diverse**
 - Avoid putting 'Q:' in front of your question.
 """
     elif req.track == "Family & Background":
-        # Count how many background preset questions have already been asked
-        asked_questions = [turn["question"] for turn in req.history]
         all_bg_questions = PRESETS["Family & Background"]
 
-        remaining = [q for q in all_bg_questions if q not in asked_questions]
-
-        if not remaining:
+        if req.background_index >= len(all_bg_questions):
             return {
                 "question": "Thank you. That’s the end of the background interview!",
                 "current_theme": "",
                 "theme_counts": req.theme_counts,
             }
 
-        next_question = remaining[0]
+        next_question = all_bg_questions[req.background_index]
         last_answer = req.history[-1]["answer"] if req.history else ""
 
         gpt_prompt = f"""
@@ -290,7 +287,7 @@ If the CV is provided, you may suggest the top 5 **most impressive and diverse**
 
         return {
             "question": response.choices[0].message.content.strip(),
-            "current_theme": "",  # Not using themes here
+            "current_theme": "",
             "theme_counts": req.theme_counts,
         }
 
