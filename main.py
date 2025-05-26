@@ -249,6 +249,52 @@ If the CV is provided, you may suggest the top 5 **most impressive and diverse**
 - Do not repeat or rephrase the same question if it has already been asked.
 - Avoid putting 'Q:' in front of your question.
 """
+    elif req.track == "Family & Background":
+        # Count how many background preset questions have already been asked
+        asked_questions = [turn["question"] for turn in req.history]
+        all_bg_questions = PRESETS["Family & Background"]
+
+        remaining = [q for q in all_bg_questions if q not in asked_questions]
+
+        if not remaining:
+            return {
+                "question": "Thank you. That’s the end of the background interview!",
+                "current_theme": "",
+                "theme_counts": req.theme_counts,
+            }
+
+        next_question = remaining[0]
+        last_answer = req.history[-1]["answer"] if req.history else ""
+
+        gpt_prompt = f"""
+    You are a warm, perceptive college counselor conducting an interview with a student. 
+
+    Your goal is to ask the preset questions **one by one in the given order** from the “Family & Background” list. Do not invent new questions or reorder them. Add a short, friendly sentence that naturally reacts to the student’s **last answer**, and then ask the **next** question.
+
+    Here is the student's previous answer:
+    "{last_answer}"
+
+    The next question to ask is:
+    "{next_question}"
+
+    Begin with a natural transition or reflection, and then ask the question in a conversational tone.
+    """
+
+        response = client.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You are a friendly college counselor helping a student reflect on their background."},
+                {"role": "user", "content": gpt_prompt}
+            ]
+        )
+
+        return {
+            "question": response.choices[0].message.content.strip(),
+            "current_theme": "",  # Not using themes here
+            "theme_counts": req.theme_counts,
+        }
+
+    
     else:
         prompt = f"""
 Your task is to:
