@@ -160,23 +160,24 @@ async def next_question(req: QuestionRequest):
 
         if req.track == "Extracurricular Activities" and last_tag == "ask_top_activities":
             req.extracurricular_fields = [s.strip() for s in req.history[-1]['answer'].split(",")]
-    logging.info(f"Academic fields: {req.academic_fields}")
+
     conversation_history = conversation_history or "This is the first question."
     track_questions = PRESETS.get(req.track, [])
     selected_preset = random.choice(track_questions) if track_questions else ""
     themes = PRESET_THEMES
     tag = ""
-    
-    logging.info(f"track questions: {track_questions}")
-    logging.info(f"themes: {themes}")
-    
-    logging.info(f"theme counts: {req.theme_counts}")
+
     
     
 
     # Pick the prompt based on the phase
     if req.is_rapid_fire and req.track == "Academic Interests":
+        
+        logging.info("[START] Handling Academic Interests Track")
+        
         last_tag = req.history[-1].get("tag", "") if req.history else ""
+        logging.info(f"[INFO] Last tag in history: {last_tag}")
+            
         if last_tag == "ask_fav_subjects":
         # Extract academic fields from the last answer using GPT
             extraction_prompt = f"""
@@ -197,11 +198,13 @@ Return a Python list of 3–4 academic subject names only. If none are identifia
         try:
             # Evaluate safely
             extracted = extraction_response.choices[0].message.content.strip()
+            logging.info(f"[INFO] Extracted raw subject list string: {extracted}")
             req.academic_fields = eval(extracted) if extracted.startswith("[") else []
-        except Exception:
+        except Exception as e:
+            logging.warning(f"[WARN] Failed to parse extracted fields. Error: {e}")
             req.academic_fields = []
 
-
+        logging.info(f"[INFO] Final academic_fields: {req.academic_fields}")
         fully_discussed_fields = []
 
         for field in req.academic_fields:
@@ -226,18 +229,27 @@ Return a Python list of 3–4 academic subject names only. If none are identifia
                 for turn in req.history
             )
             
+            
+            logging.info(f"[CHECK] Field: {field} | asked_about_courses: {asked_about_courses} | asked_about_experiences: {asked_about_experiences} | confirmed_done: {confirmed_done}")
+            
             if asked_about_courses and asked_about_experiences and confirmed_done:
                 fully_discussed_fields.append(field)
                 
         remaining_fields = [f for f in req.academic_fields if f not in fully_discussed_fields]
 
+        logging.info(f"[INFO] Fully discussed fields: {fully_discussed_fields}")
+        logging.info(f"[INFO] Remaining fields: {remaining_fields}")
+        
         already_asked_fav_subjects = any(
             "three or four of your favourite subjects" in turn["question"].lower()
             for turn in req.history
         )
         
+        logging.info(f"[INFO] Already asked favourite subjects? {already_asked_fav_subjects}")
+        
         
         if not req.academic_fields and not already_asked_fav_subjects:
+            logging.info("[ACTION] Asking for favourite subjects")
             prompt = f"""
 The student has not yet listed their favorite academic subjects.
 
@@ -263,12 +275,14 @@ If the CV is not provided ask: "Could you tell me about three or four of your fa
             }
 
         elif remaining_fields:
+            logging.info(f"[ACTION] Continuing with subject: {current_field}")
             current_field = remaining_fields[0]
 
             courses = "None"
             experiences = "None"
 
             if req.cv_text.strip().lower() != "no cv provided":
+                logging.info("[INFO] Extracting CV-based course and experience info")
             # Use GPT to extract courses
                 gpt_course_prompt = f"""
 From the following CV, extract up to 3 specific courses or classes related to the subject "{current_field}". 
@@ -305,6 +319,8 @@ CV:
 
             subject_questions_asked = [turn['question'] for turn in req.history if current_field.lower() in turn['question'].lower()]
             last_answer = req.history[-1]['answer'].lower() if req.history else ""
+            logging.info(f"[INFO] Prior questions for {current_field}: {subject_questions_asked}")
+            logging.info(f"[INFO] Last answer: {last_answer}")
 
             if not any("school" in q or "course" in q for q in subject_questions_asked):
                 if courses.lower() != "none":
@@ -332,6 +348,7 @@ CV:
             }
 
         else:
+            logging.info("[OUT] All fields discussed, ending subject loop")
             return {
                 "question": "Thank you. I now have enough information to move on to broader questions if you have nothing to add.",
                 "current_theme": "",
