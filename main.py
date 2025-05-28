@@ -176,61 +176,87 @@ async def next_question(req: QuestionRequest):
 
     # Pick the prompt based on the phase
     if req.is_rapid_fire and req.track == "Academic Interests":
-        prompt = f"""
-Your job is to gather **objective details** and follow the given instructions.
-
-CV of the student:
-{req.cv_text}
-
-Conversation so far:
-{conversation_history}
-
-Academic fields selected: {', '.join(req.academic_fields) if req.academic_fields else 'None'}
-
-To understand which step you are in check the conversation history and ask the question accordingly.
-
-Steps to follow (instructions):
-1. If you have not asked this before begin with:
-   Looks like [Extract 2-3 broad academic interests from the students CV] are your main academic interests. Could you tell me about three or four of your favourite subjects, related or unrelated to those interests?
-   If you have already asked this question, skip to step 2.
-
-2. When the student tells their academic interests choose one of them and do not change the choosen academic interest untill you ask all questions below: if possible, use the CV and ask: “Looks like you studied [subject name] at [From the CV mention maximum 3 courses the student took]. Tell me more about them or other in school or summer courses you took part in.” If not (no cv provided case) simply ask: “How have you pursued [subject name] subject at school or during summer school?”
-
-   Then: If possible, use the CV and ask: “I especially would like to know more about [From the CV select 2-3 research, internships or outisde of class activities related to the current academic field of discussion]? Tell me more about them or other internship, research and outside of class activites you took part in.” If not (no cv provided case) simply ask: “Have you done any research, internships or outisde of class activities related to [subject name] subject outside class?” 
-   
-   Then ask: “Is there anything more you want to add regarding this subject? If not lets move on.”  
-    - If the student says yes, ask: "What else would you like to add?” If the student says "no" or "lets move on" move on to the next field you can find in academic fields selected that has not yet been discussed---check the conversationn history to see wheter a field has been discussed or not. If there are no more new subjects to discuss, move to step 3.
-   
-3. If you have covered all subjects, ask: “Thank you. I now have enough information to move on to broader questions if you have nothing to add.”
-
-
-⚠️ Important:
-- Look at the conversation history to ensure where you were last and what you have already discussed to choose the next question to ask from the order above.
-- Ask ONE simple and factual question at a time.
-- Do not put Q: at the begining of the question.
-- Only ask about the singular subject at hand. (i.e. finish the discussion about one subject before moving to the next.)
-- Stay focused on information-gathering only.
-"""
-  # <- use your rapid-fire prompt here
-        response = client.chat.completions.create(
-                model="gpt-4",
-                messages=[
-                    {"role": "system", "content": "You are a warm, perceptive assistant."},
-                    {"role": "user", "content": prompt}
-                ]
+        
+    
+        already_asked = any("three or four of your favourite subjects" in turn["question"].lower() for turn in req.history)
+        if not req.academic_fields:
+            if not already_asked:
+                return {
+                    "question": "Could you tell me about three or four of your favourite subjects, related or unrelated to those interests?",
+                    "current_theme": "",
+                    "theme_counts": req.theme_counts,
+                    "tag": "ask_fav_subjects"
+                }
+            else:
+                last_turn = req.history[-1]
+                if last_turn.get("tag") == "ask_fav_subjects":
+                     req.academic_fields = [s.strip() for s in last_turn["answer"].split(",")]
+        discussed_fields = set()
+        for turn in req.history:
+            for field in req.academic_fields:
+                if field.lower() in turn["question"].lower():
+                    discussed_fields.add(field)
+        
+        remaining_fields = [f for f in req.academic_fields if f not in discussed_fields]
+        if not remaining_fields:
+            return {
+                "question": "Thank you. I now have enough information to move on to broader questions if you have nothing to add.",
+                "current_theme": "",
+                "theme_counts": req.theme_counts,
+                "tag": ""
+            }
+            
+        current_field = remaining_fields[0]
+        
+        field_q_count = sum(
+            1 for turn in req.history if current_field.lower() in turn["question"].lower()
         )
+        
+        cv_text = req.cv_text.lower() if req.cv_text else ""
+        question = ""
+        
+        if field_q_count == 0:
+            if cv_text:
+                course_lines = [line for line in cv_text.splitlines() if current_field.lower() in line]
+                courses = "; ".join(course_lines[:3]) if course_lines else ""
+                if courses:
+                    question = f"Looks like you studied {current_field} at {courses}. Tell me more about them or other in-school or summer courses you took part in."
+                else:
+                    question = f"How have you pursued {current_field} at school or during summer school?"
+            else:
+                question = f"How have you pursued {current_field} at school or during summer school?"
+                
+        elif field_q_count == 1:
+            # Ask about outside class activities
+            if cv_text:
+                activity_lines = [line for line in cv_text.splitlines() if current_field.lower() in line and any(word in line for word in ["research", "intern", "project"])]
+                activities = "; ".join(activity_lines[:2]) if activity_lines else ""
+                if activities:
+                    question = f"I especially would like to know more about {activities}. Tell me more about them or other internships, research, or outside class activities related to {current_field}."
+                else:
+                    question = f"Have you done any research, internships, or outside class activities related to {current_field}?"
+            else:
+                question = f"Have you done any research, internships, or outside class activities related to {current_field}?"
 
-        question = response.choices[0].message.content.strip()
+        elif field_q_count == 2:
+            question = f"Is there anything more you want to add regarding {current_field}? If not, let's move on."
 
-        if "three or four of your favourite subjects" in question.lower():
-            tag = "ask_fav_subjects"
+        else:
+            # If more than 3 questions, mark it done
+            return {
+                "question": f"Thanks for sharing about {current_field}.",
+                "current_theme": "",
+                "theme_counts": req.theme_counts,
+                "tag": ""
+            }
 
         return {
             "question": question,
             "current_theme": "",
             "theme_counts": req.theme_counts,
-            "tag": tag
+            "tag": ""
         }
+                    
         
     elif req.is_rapid_fire and req.track == "Extracurricular Activities":
         prompt = f"""
