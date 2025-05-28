@@ -176,87 +176,118 @@ async def next_question(req: QuestionRequest):
 
     # Pick the prompt based on the phase
     if req.is_rapid_fire and req.track == "Academic Interests":
-        
-    
-        already_asked = any("three or four of your favourite subjects" in turn["question"].lower() for turn in req.history)
-        if not req.academic_fields:
-            if not already_asked:
-                return {
-                    "question": "Could you tell me about three or four of your favourite subjects, related or unrelated to those interests?",
-                    "current_theme": "",
-                    "theme_counts": req.theme_counts,
-                    "tag": "ask_fav_subjects"
-                }
-            else:
-                last_turn = req.history[-1]
-                if last_turn.get("tag") == "ask_fav_subjects":
-                     req.academic_fields = [s.strip() for s in last_turn["answer"].split(",")]
-        discussed_fields = set()
-        for turn in req.history:
-            for field in req.academic_fields:
-                if field.lower() in turn["question"].lower():
-                    discussed_fields.add(field)
-        
+        last_tag = req.history[-1].get("tag", "") if req.history else ""
+        if last_tag == "ask_fav_subjects":
+            req.academic_fields = [s.strip() for s in req.history[-1]['answer'].split(",")]
+
+        discussed_fields = [field for turn in req.history for field in req.academic_fields if field.lower() in turn['question'].lower()]
         remaining_fields = [f for f in req.academic_fields if f not in discussed_fields]
-        if not remaining_fields:
+
+        if not req.academic_fields:
+            prompt = f"""
+The student has not yet listed their favorite academic subjects.
+
+CV of the student:
+{req.cv_text}
+
+Conversation so far:
+{conversation_history}
+
+Ask the following in a friendly tone:
+"Could you tell me about three or four of your favourite subjects? They can be related or unrelated to what I see on your CV."
+"""
+            response = client.chat.completions.create(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": "You are a warm, perceptive assistant."},
+                    {"role": "user", "content": prompt}
+                ]
+            )
+            question = response.choices[0].message.content.strip()
+            return {
+                "question": question,
+                "current_theme": "",
+                "theme_counts": req.theme_counts,
+                "tag": "ask_fav_subjects"
+            }
+
+        elif remaining_fields:
+            current_field = remaining_fields[0]
+
+            courses = "None"
+            experiences = "None"
+
+            if req.cv_text.strip().lower() != "no cv provided":
+            # Use GPT to extract courses
+                gpt_course_prompt = f"""
+From the following CV, extract up to 3 specific courses or classes related to the subject "{current_field}". 
+If there are none, respond with "None".
+
+CV:
+{req.cv_text}
+"""
+                course_response = client.chat.completions.create(
+                    model="gpt-4",
+                    messages=[
+                        {"role": "system", "content": "You are an assistant extracting structured academic data from resumes."},
+                        {"role": "user", "content": gpt_course_prompt}
+                    ]
+                )
+                courses = course_response.choices[0].message.content.strip()
+
+            # Use GPT to extract experiences
+                gpt_experience_prompt = f"""
+From the following CV, extract up to 3 specific research projects, internships, or extracurricular experiences related to the subject "{current_field}". 
+If there are none, respond with "None".
+
+CV:
+{req.cv_text}
+"""
+                experience_response = client.chat.completions.create(
+                    model="gpt-4",
+                    messages=[
+                        {"role": "system", "content": "You are an assistant extracting structured academic data from resumes."},
+                        {"role": "user", "content": gpt_experience_prompt}
+                    ]
+                )
+                experiences = experience_response.choices[0].message.content.strip()
+
+            subject_questions_asked = [turn['question'] for turn in req.history if current_field.lower() in turn['question'].lower()]
+            last_answer = req.history[-1]['answer'].lower() if req.history else ""
+
+            if not any("school" in q or "course" in q for q in subject_questions_asked):
+                if courses.lower() != "none":
+                    question = f"Looks like you studied {current_field} in courses like {courses}. Tell me more about them or other school/summer courses you took part in."
+                else:
+                    question = f"How have you pursued {current_field} subject at school or during summer school?"
+            elif not any("internship" in q or "research" in q for q in subject_questions_asked):
+                if experiences.lower() != "none":
+                    question = f"I especially would like to know more about your experiences like {experiences}. Tell me more about them or other internships, research or out-of-class activities you took part in."
+                else:
+                    question = f"Have you done any research, internships or out-of-class activities related to {current_field}?"
+            elif "no" in last_answer or "move on" in last_answer:
+                if len(remaining_fields) > 1:
+                    question = f"Thanks. Let’s move on. We haven’t discussed your subject {remaining_fields[1]} yet."
+                else:
+                    question = "Thank you. I now have enough information to move on to broader questions if you have nothing to add."
+            else:
+                question = f"Is there anything more you want to add regarding {current_field}? If not, let’s move on."
+
+            return {
+                "question": question,
+                "current_theme": "",
+                "theme_counts": req.theme_counts,
+                "tag": ""
+            }
+
+        else:
             return {
                 "question": "Thank you. I now have enough information to move on to broader questions if you have nothing to add.",
                 "current_theme": "",
                 "theme_counts": req.theme_counts,
                 "tag": ""
             }
-            
-        current_field = remaining_fields[0]
-        
-        field_q_count = sum(
-            1 for turn in req.history if current_field.lower() in turn["question"].lower()
-        )
-        
-        cv_text = req.cv_text.lower() if req.cv_text else ""
-        question = ""
-        
-        if field_q_count == 0:
-            if cv_text:
-                course_lines = [line for line in cv_text.splitlines() if current_field.lower() in line]
-                courses = "; ".join(course_lines[:3]) if course_lines else ""
-                if courses:
-                    question = f"Looks like you studied {current_field} at {courses}. Tell me more about them or other in-school or summer courses you took part in."
-                else:
-                    question = f"How have you pursued {current_field} at school or during summer school?"
-            else:
-                question = f"How have you pursued {current_field} at school or during summer school?"
-                
-        elif field_q_count == 1:
-            # Ask about outside class activities
-            if cv_text:
-                activity_lines = [line for line in cv_text.splitlines() if current_field.lower() in line and any(word in line for word in ["research", "intern", "project"])]
-                activities = "; ".join(activity_lines[:2]) if activity_lines else ""
-                if activities:
-                    question = f"I especially would like to know more about {activities}. Tell me more about them or other internships, research, or outside class activities related to {current_field}."
-                else:
-                    question = f"Have you done any research, internships, or outside class activities related to {current_field}?"
-            else:
-                question = f"Have you done any research, internships, or outside class activities related to {current_field}?"
 
-        elif field_q_count == 2:
-            question = f"Is there anything more you want to add regarding {current_field}? If not, let's move on."
-
-        else:
-            # If more than 3 questions, mark it done
-            return {
-                "question": f"Thanks for sharing about {current_field}.",
-                "current_theme": "",
-                "theme_counts": req.theme_counts,
-                "tag": ""
-            }
-
-        return {
-            "question": question,
-            "current_theme": "",
-            "theme_counts": req.theme_counts,
-            "tag": ""
-        }
-                    
         
     elif req.is_rapid_fire and req.track == "Extracurricular Activities":
         prompt = f"""
