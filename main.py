@@ -205,7 +205,13 @@ Return a Python list of 3–4 academic subject names only. If none are identifia
         discussed_fields = [field for turn in req.history for field in req.academic_fields if field.lower() in turn['question'].lower()]
         remaining_fields = [f for f in req.academic_fields if f not in discussed_fields]
 
-        if not req.academic_fields:
+        already_asked_fav_subjects = any(
+            "three or four of your favourite subjects" in turn["question"].lower()
+            for turn in req.history
+        )
+        
+        
+        if not req.academic_fields and not already_asked_fav_subjects:
             prompt = f"""
 The student has not yet listed their favorite academic subjects.
 
