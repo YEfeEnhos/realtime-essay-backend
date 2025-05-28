@@ -178,7 +178,29 @@ async def next_question(req: QuestionRequest):
     if req.is_rapid_fire and req.track == "Academic Interests":
         last_tag = req.history[-1].get("tag", "") if req.history else ""
         if last_tag == "ask_fav_subjects":
-            req.academic_fields = [s.strip() for s in req.history[-1]['answer'].split(",")]
+        # Extract academic fields from the last answer using GPT
+            extraction_prompt = f"""
+The student was asked to list three or four of their favourite academic subjects.
+
+Here is their answer:
+"{req.history[-1]['answer']}"
+
+Return a Python list of 3–4 academic subject names only. If none are identifiable, return an empty list.
+"""
+            extraction_response = client.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You extract structured academic subject names from student replies."},
+                {"role": "user", "content": extraction_prompt}
+            ]
+        )
+        try:
+            # Evaluate safely
+            extracted = extraction_response.choices[0].message.content.strip()
+            req.academic_fields = eval(extracted) if extracted.startswith("[") else []
+        except Exception:
+            req.academic_fields = []
+
 
         discussed_fields = [field for turn in req.history for field in req.academic_fields if field.lower() in turn['question'].lower()]
         remaining_fields = [f for f in req.academic_fields if f not in discussed_fields]
@@ -190,11 +212,8 @@ The student has not yet listed their favorite academic subjects.
 CV of the student:
 {req.cv_text}
 
-Conversation so far:
-{conversation_history}
-
-Ask the following in a friendly tone:
-"Could you tell me about three or four of your favourite subjects? They can be related or unrelated to what I see on your CV."
+If the CV is provided ask: "Looks like [3–4 most relevant subjects from the CV] are your favorite subjects. Regardless, could you tell me about three or four of your favourite subjects?"
+If the CV is not provided ask: "Could you tell me about three or four of your favourite subjects?"
 """
             response = client.chat.completions.create(
                 model="gpt-4",
