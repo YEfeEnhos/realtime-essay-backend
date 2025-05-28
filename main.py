@@ -339,11 +339,9 @@ CV:
                     question = f"Have you done any research, internships or out-of-class activities related to {current_field}?"
             elif "no" in last_answer or "move on" in last_answer:
                 if len(remaining_fields) > 1:
-                    question = f"Thanks. Let’s move on. We haven’t discussed your subject {remaining_fields[1]} yet."
+                    question = f"Is there anything more you want to add regarding {current_field}? If so tell it now if not let’s move on."
                 else:
                     question = "Thank you. I now have enough information to move on to broader questions if you have nothing to add."
-            else:
-                question = f"Is there anything more you want to add regarding {current_field}? If not, let’s move on."
 
             return {
                 "question": question,
