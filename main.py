@@ -47,24 +47,15 @@ PRESET_THEMES = [
 # --- Preset Questions (leave empty for now) ---
 PRESETS = {
     "Academic Interests": [
-        "What are your main academic interests? Could you tell me about three or four of your favourite subjects?",
-        "Why do you like these subjects? What got you interested in them?",
-        "Go subject by subject and tell me more about how you have pursued this interest recently at school or during summer school.",
-        "How have you pursued this subject outside of the classroom? Have you done any internships or research projects?",
-        "Is there anything about the way this subject is taught that works for you or doesn’t work for you?",
-        "Do any of these subjects relate to what you think you want to study at university?",
-        "Do you know what you want to study at university?",
-        "If you don’t know, why don’t you know?",
+        "Is there anything about the way your favourite subjects are taught that works for you or doesn’t work for you?",
+        "Do any of your favourite subjects relate to what you think you want to study at university? Do you know what you want to study at university? If you don’t know, why don’t you know?",
         "What do you think you want to do after you graduate? Why do you want this career?",
         "Besides those things you have mentioned already, in what other ways are you preparing yourself for this career?",
         "Why do you want to study in the United States?",
         "How much freedom do you have in choosing your university subject or your career?",
-        "Do you have any intellectual interests or ideas that you are deeply absorbed in or fascinate you? Could you give me one or two examples?",
-        "Tell me about each in order. Why do these fascinate you? What do you want to know more about?",
-        "Have you had any obstacles or challenges in your academic life that affected your academic results?",
-        "How have you dealt with these or are currently dealing with these?",
-        "Has anything or anyone helped you overcome these challenges?",
-        "Is there anything else about your academic interests that I haven’t asked you about that you think you would like to share?"
+        "Do you have any intellectual interests or ideas that you are deeply absorbed in or fascinate you? Could you give me one or two examples? Tell me about each in order. Why do these fascinate you? What do you want to know more about?",
+        "Have you had any obstacles or challenges in your academic life that affected your academic results? How have you dealt with these or are currently dealing with these? Has anything or anyone helped you overcome these challenges?",
+        "Is there anything else about your academic interests that I haven’t asked you about that you think you would like to share? If so, please tell me if not lets end this discussion.",
     ],
     "Extracurricular Activities": [
         "Let’s start by listing your most important extracurricular activities.",
