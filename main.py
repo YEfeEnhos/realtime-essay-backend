@@ -179,29 +179,35 @@ async def next_question(req: QuestionRequest):
         logging.info(f"[INFO] Last tag in history: {last_tag}")
             
         if not req.academic_fields and any(turn.get("tag") == "ask_fav_subjects" for turn in req.history):
-        # Extract academic fields from the last answer using GPT
-            extraction_prompt = f"""
+            try:
+                last_answer = next(
+                    (turn["answer"] for turn in reversed(req.history) if turn.get("tag") == "ask_fav_subjects"),
+                    ""
+                )
+                
+                extraction_prompt = f"""
 The student was asked to list three or four of their favourite academic subjects.
 
 Here is their answer:
-"{[turn['answer'] for turn in reversed(req.history) if turn.get('tag') == 'ask_fav_subjects'][0]}"
+"{last_answer}"
 
 Return a Python list of 3–4 academic subject names only. If none are identifiable, return an empty list.
 """
-        try:
-            extraction_response = client.chat.completions.create(
-                model="gpt-4",
-                messages=[
-                    {"role": "system", "content": "You extract structured academic subject names from student replies."},
-                    {"role": "user", "content": extraction_prompt}
-                ]
-            )
-            extracted = extraction_response.choices[0].message.content.strip()
-            logging.info(f"[INFO] Extracted raw subject list string: {extracted}")
-            req.academic_fields = eval(extracted) if extracted.startswith("[") else []
-        except Exception as e:
-            logging.warning(f"[WARN] Failed to parse extracted fields. Error: {e}")
-            req.academic_fields = []
+                extraction_response = client.chat.completions.create(
+                    model="gpt-4",
+                    messages=[
+                        {"role": "system", "content": "You extract structured academic subject names from student replies."},
+                        {"role": "user", "content": extraction_prompt}
+                    ]
+                )
+                extracted = extraction_response.choices[0].message.content.strip()
+                logging.info(f"[INFO] Extracted raw subject list string: {extracted}")
+                req.academic_fields = eval(extracted) if extracted.startswith("[") else []     
+            
+            except Exception as e:
+                logging.warning(f"[WARN] Failed to parse extracted fields. Error: {e}")
+                req.academic_fields = []
+
 
         logging.info(f"[INFO] Final academic_fields: {req.academic_fields}")
         fully_discussed_fields = []
