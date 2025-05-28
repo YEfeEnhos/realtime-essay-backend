@@ -199,7 +199,7 @@ Steps to follow (instructions):
    Then: If possible, use the CV and ask: “I especially would like to know more about [From the CV select 2-3 research, internships or outisde of class activities related to the current academic field of discussion]? Tell me more about them or other internship, research and outside of class activites you took part in.” If not (no cv provided case) simply ask: “Have you done any research, internships or outisde of class activities related to [subject name] subject outside class?” 
    
    Then ask: “Is there anything more you want to add regarding this subject? If not lets move on.”  
-    - If the student says yes, ask: "What else would you like to add?” If the student says "no" or "lets move on" move on to the next subject you can find in academic fields selected. if there are no more subjects to discuss, move to step 3.
+    - If the student says yes, ask: "What else would you like to add?” If the student says "no" or "lets move on" move on to the next field you can find in academic fields selected that has not yet been discussed---check the conversationn history to see wheter a field has been discussed or not. If there are no more new subjects to discuss, move to step 3.
    
 3. If you have covered all subjects, ask: “Thank you. I now have enough information to move on to broader questions if you have nothing to add.”
 
