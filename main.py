@@ -165,6 +165,7 @@ async def next_question(req: QuestionRequest):
     track_questions = PRESETS.get(req.track, [])
     selected_preset = random.choice(track_questions) if track_questions else ""
     themes = PRESET_THEMES
+    tag = ""
     
     logging.info(f"track questions: {track_questions}")
     logging.info(f"themes: {themes}")
@@ -211,6 +212,26 @@ Steps to follow (instructions):
 - Stay focused on information-gathering only.
 """
   # <- use your rapid-fire prompt here
+        response = client.chat.completions.create(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": "You are a warm, perceptive assistant."},
+                    {"role": "user", "content": prompt}
+                ]
+        )
+
+        question = response.choices[0].message.content.strip()
+
+        if "three or four of your favourite subjects" in question.lower():
+            tag = "ask_fav_subjects"
+
+        return {
+            "question": question,
+            "current_theme": "",
+            "theme_counts": req.theme_counts,
+            "tag": tag
+        }
+        
     elif req.is_rapid_fire and req.track == "Extracurricular Activities":
         prompt = f"""
 Your job is to gather **objective details** and follow the given instructions.
@@ -263,6 +284,27 @@ If the CV is provided, you may suggest the top 5 **most impressive and diverse**
 - Do not repeat or rephrase the same question if it has already been asked.
 - Avoid putting 'Q:' in front of your question.
 """
+    
+        response = client.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You are a warm, perceptive assistant."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+
+        question = response.choices[0].message.content.strip()
+
+        if "most important 5 activities" in question.lower():
+            tag = "ask_top_activities"
+
+        return {
+            "question": question,
+            "current_theme": "",
+            "theme_counts": req.theme_counts,
+            "tag": tag
+        }
+    
     elif req.track == "Family & Background":
         all_bg_questions = PRESETS["Family & Background"]
 
