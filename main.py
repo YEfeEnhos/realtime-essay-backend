@@ -337,11 +337,8 @@ CV:
                     question = f"I especially would like to know more about your experiences like {experiences}. Tell me more about them or other internships, research or out-of-class activities you took part in."
                 else:
                     question = f"Have you done any research, internships or out-of-class activities related to {current_field}?"
-            elif "no" in last_answer or "move on" in last_answer:
-                if len(remaining_fields) > 1:
-                    question = f"Is there anything more you want to add regarding {current_field}? If so tell it now if not let’s move on."
-                else:
-                    question = "Thank you. I now have enough information to move on to broader questions if you have nothing to add."
+            elif not any("anything more" in q.lower() or "else you'd like to add" in q.lower() for q in subject_questions_asked):
+                question = f"Is there anything more you want to add regarding {current_field}? If so, tell it now — if not, we’ll move on."
 
             return {
                 "question": question,
