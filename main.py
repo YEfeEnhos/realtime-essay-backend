@@ -184,19 +184,21 @@ CV of the student:
 Conversation so far:
 {conversation_history}
 
+Academic fields selected: {', '.join(req.academic_fields) if req.academic_fields else 'None'}
+
 To understand which step you are in check the conversation history and ask the question accordingly.
 
 Steps to follow (instructions):
-1. Begin with:
+1. If you have not asked this before begin with:
    Looks like [Extract 2-3 broad academic interests from the students CV] are your main academic interests. Could you tell me about three or four of your favourite subjects, related or unrelated to those interests?
-
+   If you have already asked this question, skip to step 2.
 
 2. When the student tells their academic interests choose one of them and do not change the choosen academic interest untill you ask all questions below: if possible, use the CV and ask: “Looks like you studied [subject name] at [From the CV mention maximum 3 courses the student took]. Tell me more about them or other in school or summer courses you took part in.” If not (no cv provided case) simply ask: “How have you pursued [subject name] subject at school or during summer school?”
 
    Then: If possible, use the CV and ask: “I especially would like to know more about [From the CV select 2-3 research, internships or outisde of class activities related to the current academic field of discussion]? Tell me more about them or other internship, research and outside of class activites you took part in.” If not (no cv provided case) simply ask: “Have you done any research, internships or outisde of class activities related to [subject name] subject outside class?” 
    
    Then ask: “Is there anything more you want to add regarding this subject? If not lets move on.”  
-    - If the student says yes, ask: "What else would you like to add?” If the student says no and there are subjects you have not discussed outlined by the student, repeat the process by choosing the next subject which you can find in the conversation history. 
+    - If the student says yes, ask: "What else would you like to add?” If the student says no and there are subjects you have not discussed outlined by the student, repeat the process by choosing the next subject which you can find in the conversation history and academic fields. 
    
 3. If you have covered all subjects, ask: “Thank you. I now have enough information to move on to broader questions if you have nothing to add.”
 
