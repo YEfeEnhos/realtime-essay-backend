@@ -121,20 +121,21 @@ class QuestionRequest(BaseModel):
     is_rapid_fire: bool
     theme_counts: dict = {}
     current_theme: str = ""
-    academic_fields: list = []
+    academic_fields: list = []  # For favorite subjects
+    extracurricular_fields: list = []  # For top 5 activities
     background_index: int = 0
 
 # --- Utility: History Trimming ---
 def smart_conversation_history(history):
-    recent_history = history[-MAX_TURNS:]
-    text = "\n".join([f"Q: {turn['question']}\nA: {turn['answer']}" for turn in recent_history])
-    if len(text) > MAX_CHAR_HISTORY:
-        for i in range(len(recent_history)):
-            trimmed = "\n".join([f"Q: {t['question']}\nA: {t['answer']}" for t in recent_history[i:]])
-            if len(trimmed) <= MAX_CHAR_HISTORY:
-                return trimmed
-        return ""
-    return text
+    if not history:
+        return "This is the first question."
+
+    # Include all past questions (without answers)
+    all_questions = "\n".join([f"Q: {turn['question']}" for turn in history[:-1]])
+    last_q_and_a = f"Q: {history[-1]['question']}\nA: {history[-1]['answer']}"
+
+    return f"{all_questions}\n{last_q_and_a}".strip()
+
 
 # --- Endpoint: Upload CV ---
 @app.post("/upload-cv")
@@ -150,6 +151,16 @@ async def upload_cv(file: UploadFile = File(...)):
 @app.post("/next-question")
 async def next_question(req: QuestionRequest):
     conversation_history = smart_conversation_history(req.history)
+    # --- Extract structured info based on tags ---
+    if req.history:
+        last_tag = req.history[-1].get("tag", "")
+
+        if req.track == "Academic Interests" and last_tag == "ask_fav_subjects":
+            req.academic_fields = [s.strip() for s in req.history[-1]['answer'].split(",")]
+
+        if req.track == "Extracurricular Activities" and last_tag == "ask_top_activities":
+            req.extracurricular_fields = [s.strip() for s in req.history[-1]['answer'].split(",")]
+
     conversation_history = conversation_history or "This is the first question."
     track_questions = PRESETS.get(req.track, [])
     selected_preset = random.choice(track_questions) if track_questions else ""
@@ -285,11 +296,21 @@ If the CV is provided, you may suggest the top 5 **most impressive and diverse**
             ]
         )
 
+        q_text = response.choices[0].message.content.strip()
+        tag = ""
+
+        if "three or four of your favourite subjects" in q_text.lower():
+            tag = "ask_fav_subjects"
+        elif "most important 5 activities" in q_text.lower():
+            tag = "ask_top_activities"
+
         return {
-            "question": response.choices[0].message.content.strip(),
+            "question": q_text,
             "current_theme": "",
             "theme_counts": req.theme_counts,
+            "tag": tag
         }
+
 
     
     else:
@@ -309,7 +330,6 @@ Preset question to base your next move on:
 "{track_questions}"
 
 If the academic track is choosen ask at least once about challanges and obstacles in the academic life of the student.
-If the background and family track is choosen ignore the CV and ask all of the preset questions in order. Check the conversation history to see the last question you asked. Do not skip any question or repeat any question already asked.
 
 Pick the most relevant preset question from the list according to the conversation history and the CV.
 
@@ -374,11 +394,19 @@ Reminder:
         else:
             logging.warning(f"Could not match theme in response: {raw_theme}")
 
+    tag = ""
+    if "three or four of your favourite subjects" in question.lower():
+        tag = "ask_fav_subjects"
+    elif "most important 5 activities" in question.lower():
+        tag = "ask_top_activities"
+
     return {
         "question": question,
         "current_theme": guessed_theme,
         "theme_counts": theme_counts,
+        "tag": tag
     }
+
 
 # --- Endpoint: Speak ---
 @app.post("/speak")
