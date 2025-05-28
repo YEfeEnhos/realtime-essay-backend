@@ -275,8 +275,8 @@ If the CV is not provided ask: "Could you tell me about three or four of your fa
             }
 
         elif remaining_fields:
-            logging.info(f"[ACTION] Continuing with subject: {current_field}")
             current_field = remaining_fields[0]
+            logging.info(f"[ACTION] Continuing with subject: {current_field}")
 
             courses = "None"
             experiences = "None"
