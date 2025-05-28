@@ -230,7 +230,7 @@ Return a Python list of 3–4 academic subject names only. If none are identifia
             confirmed_done = any(
                 field_lower in turn['question'].lower() and 
                 "anything more" in turn['question'].lower() and
-                "no" in turn['answer'].lower()
+                "move on" in turn['answer'].lower() or "no" in turn['answer'].lower() 
                 for turn in req.history
             )
             
