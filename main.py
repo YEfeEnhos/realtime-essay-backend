@@ -160,7 +160,7 @@ async def next_question(req: QuestionRequest):
 
         if req.track == "Extracurricular Activities" and last_tag == "ask_top_activities":
             req.extracurricular_fields = [s.strip() for s in req.history[-1]['answer'].split(",")]
-
+    logging.info(f"Academic fields: {req.academic_fields}")
     conversation_history = conversation_history or "This is the first question."
     track_questions = PRESETS.get(req.track, [])
     selected_preset = random.choice(track_questions) if track_questions else ""
