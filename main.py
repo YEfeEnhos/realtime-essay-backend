@@ -115,6 +115,7 @@ class QuestionRequest(BaseModel):
     academic_fields: list = []  # For favorite subjects
     extracurricular_fields: list = []  # For top 5 activities
     background_index: int = 0
+    academic_index: int = 0
 
 # --- Utility: History Trimming ---
 def smart_conversation_history(history):
@@ -344,7 +345,7 @@ CV:
                 "question": "Thank you. I now have enough information to move on to broader questions if you have nothing to add.",
                 "current_theme": "",
                 "theme_counts": req.theme_counts,
-                "tag": ""
+                "tag": "end_rapid_fire_academic" 
             }
 
         
@@ -471,8 +472,57 @@ If the CV is provided, you may suggest the top 5 **most impressive and diverse**
             "tag": tag
         }
 
+    elif req.track == "Academic Interests":
+        all_academic_questions = PRESETS["Academic Interests"]
 
-    
+        if req.academic_index >= len(all_academic_questions):
+            return {
+                "question": "Thank you. That’s the end of the academic interview!",
+                "current_theme": "",
+                "theme_counts": req.theme_counts,
+            }
+
+        next_question = all_academic_questions[req.academic_index]
+        last_answer = req.history[-1]["answer"] if req.history else ""
+
+        gpt_prompt = f"""
+    You are a warm, perceptive college counselor conducting an interview with a student. 
+
+    Your goal is to ask the preset questions **one by one in the given order** from the “Academic Interests” list. Do not invent new questions or reorder them. Add a short, friendly sentence that naturally reacts to the student’s **last answer**, and then ask the **next** question.
+
+    Here is the student's previous answer:
+    "{last_answer}"
+
+    The next question to ask is:
+    "{next_question}"
+
+    Begin with a natural transition or reflection, and then ask the question in a conversational tone.
+    """
+
+        response = client.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You are a friendly college counselor helping a student reflect on their academic life."},
+                {"role": "user", "content": gpt_prompt}
+            ]
+        )
+
+        q_text = response.choices[0].message.content.strip()
+        tag = ""
+
+        if "three or four of your favourite subjects" in q_text.lower():
+            tag = "ask_fav_subjects"
+        elif "most important 5 activities" in q_text.lower():
+            tag = "ask_top_activities"
+
+        return {
+            "question": q_text,
+            "current_theme": "",
+            "theme_counts": req.theme_counts,
+            "academic_index": req.academic_index + 1,
+            "tag": tag
+        }
+
     else:
         prompt = f"""
 Your task is to:
