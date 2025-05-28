@@ -202,8 +202,34 @@ Return a Python list of 3–4 academic subject names only. If none are identifia
             req.academic_fields = []
 
 
-        discussed_fields = [field for turn in req.history for field in req.academic_fields if field.lower() in turn['question'].lower()]
-        remaining_fields = [f for f in req.academic_fields if f not in discussed_fields]
+        fully_discussed_fields = []
+
+        for field in req.academic_fields:
+            field_lower = field.lower()
+            
+            asked_about_courses = any(
+                field_lower in turn['question'].lower() and 
+                any(kw in turn['question'].lower() for kw in ["school", "course", "study"])
+                for turn in req.history
+            )
+            
+            asked_about_experiences = any(
+                field_lower in turn['question'].lower() and 
+                any(kw in turn['question'].lower() for kw in ["internship", "research", "outside", "experience"])
+                for turn in req.history
+            )
+
+            confirmed_done = any(
+                field_lower in turn['question'].lower() and 
+                "anything more" in turn['question'].lower() and
+                "no" in turn['answer'].lower()
+                for turn in req.history
+            )
+            
+            if asked_about_courses and asked_about_experiences and confirmed_done:
+                fully_discussed_fields.append(field)
+                
+        remaining_fields = [f for f in req.academic_fields if f not in fully_discussed_fields]
 
         already_asked_fav_subjects = any(
             "three or four of your favourite subjects" in turn["question"].lower()
