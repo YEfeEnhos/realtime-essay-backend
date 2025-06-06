@@ -473,6 +473,7 @@ If the CV is provided, you may suggest the top 5 **most impressive and diverse**
         }
 
     elif req.track == "Academic Interests":
+        logging.info("[START] Regular Academic Interests Track")
         all_academic_questions = PRESETS["Academic Interests"]
 
         if req.academic_index >= len(all_academic_questions):
