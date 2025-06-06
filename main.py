@@ -355,77 +355,175 @@ CV:
 
         
     elif req.is_rapid_fire and req.track == "Extracurricular Activities":
-        prompt = f"""
-Your job is to gather **objective details** and follow the given instructions.
-
-CV of the student:
-{req.cv_text or "None provided."}
-
-Conversation so far:
-{conversation_history}
-
-To understand which step you are in check the conversation history and ask the question accordingly. Make sure to ask the questions in the order below and not repeat.
-
-Steps to follow (instructions):
-
-Only do this if the CV is not provided.
-“What extracurricular activities or clubs are you involved in? This could be sport, volunteer work, community engagement, arts/culture, or simply what you like doing in your free time. Could you start by listing your most important extracurricular activities?” (Here we aim to get a extensive list so encourage the student to list as many as possible.)
-
-2. When student list their activities or provided a CV:
-Depending on the list the student provides say, “To me [5 **most impressive and diverse** items from the ones student listed] stand out. What do you think? Could you pick the most important 5 activities you would like to talk about today?” (Ensure to highlight that they should be the most important ones.)
-If the CV is provided, you may suggest the top 5 **most impressive and diverse** items, avoiding overlapping roles (e.g., two research projects).
-
-3. Then ask:
-“In which order would you like to talk about these five activities?”
-
-4. For each activity (one at a time), ask the following **in sequence**, only moving to the next after the previous is answered. Stick with the same activity till step 5:
-
-    4.1) Could you tell me more about this activity and how long you’ve done it? What’s your role in it? What do you bring to it personally?
-    4.2) What do you enjoy about it? What’s been most rewarding?
-    4.3) What have you found challenging about this work?
-    4.4) What have you learned about yourself or others?
-    4.5) Do you see yourself continuing it? If you’ve stopped or had to cut back (or will do in the future), how do you feel?
-    4.6) Do you have any anecdotes, moments or take-aways that stand out? 
-    
-5. After all questions are asked for one activity:
-- Ask: “Is there anything more you want to add regarding this activity? If not, let's move on.”
-
-- If the student says yes, ask: "What else would you like to add?”
-- If they say no, move to the next activity from the list, and repeat step 4.
-
-6. When all activities have been covered:
-“Thanks for sharing those. I now can move on or I can hear about another activity. If you want to talk about a new activity please state it or else say lets move on.”
-
-- If the student says yes and states an activity, do step 4 again for that activity.
-- If the student says no, say: “Thank you. That’s the end of the extracurricular interview!”
-
-⚠️ Important:
-- Look at the conversation history to determine the step and which activity you’re on.
-- Ask only ONE factual question per turn.
-- NEVER jump to another activity or step prematurely.
-- Do not repeat or rephrase the same question if it has already been asked.
-- Avoid putting 'Q:' in front of your question.
-"""
-    
-        response = client.chat.completions.create(
-            model="gpt-4",
-            messages=[
-                {"role": "system", "content": "You are a warm, perceptive assistant."},
-                {"role": "user", "content": prompt}
-            ]
+        logging.info("[START] Handling Extracurricular Activities Track")
+        
+        last_tag = req.history[-1].get("tag", "") if req.history else ""
+        logging.info(f"[INFO] Last tag in history: {last_tag}")
+        
+        already_asked_top_activities = any(
+            "extracurriculars you want to talk about today" in turn["question"].lower()
+            or "could you start by listing your most important extracurricular activities" in turn["question"].lower()
+            for turn in req.history
         )
+        
+        if not req.extracurricular_fields and not already_asked_top_activities:
+            logging.info("[ACTION] Asking for top extracurricular activities")
+            
+            if req.cv_text and req.cv_text.strip():
+                logging.info("[INFO] CV provided, extracting top 5 impressive extracurriculars")
+                
+                extraction_prompt = f"""
+                From the following student CV, extract the 5 **most impressive and diverse** extracurricular activities that would stand out to a college admissions officer. Avoid overlapping roles (e.g., two similar research projects).
+                
+                CV:
+                {req.cv_text}
+                
+                Return them as a Python list of short activity names only.
+                """
+                
+                extraction_response = client.chat.completions.create(
+                    model="gpt-4",
+                    messages=[
+                        {"role": "system", "content": "You extract top-tier extracurricular activities for college admissions."},
+                        {"role": "user", "content": extraction_prompt}
+                    ]
+                )
+                
+                extracted = extraction_response.choices[0].message.content.strip()
+                logging.info(f"[INFO] Extracted top activities: {extracted}")
+                top_five = eval(extracted) if extracted.startswith("[") else []
+                formatted = ", ".join(top_five)
+                
+                question = (
+                    f"Looks like {formatted} are your most impressive extracurriculars. "
+                    "Regardless, tell me the 5 extracurriculars you want to talk about today."
+                )
+            else:
+                question = (
+                    "What extracurricular activities or clubs are you involved in? This could be sport, volunteer work, "
+                    "community engagement, arts/culture, or simply what you like doing in your free time. "
+                    "Could you start by listing your most important extracurricular activities?"
+                )
+            
+            return {
+                "question": question,
+                "current_theme": "",
+                "theme_counts": req.theme_counts,
+                "tag": "ask_top_activities"
+            }
+            
+        if not req.extracurricular_fields and last_tag == "ask_top_activities":
+            try:
+                last_answer = req.history[-1]["answer"]
+                extraction_prompt = f"""
+                The student was asked to list the 5 extracurricular activities they want to talk about today.
 
-        question = response.choices[0].message.content.strip()
+                Here is their answer:
+                \"{last_answer}\"
 
-        if "most important 5 activities" in question.lower():
-            tag = "ask_top_activities"
-
+                Return a Python list of exactly 5 activity names only.
+                """
+                extraction_response = client.chat.completions.create(
+                    model="gpt-4",
+                    messages=[
+                        {"role": "system", "content": "You extract structured extracurricular activity names from student replies."},
+                        {"role": "user", "content": extraction_prompt}
+                    ]
+                )
+                
+                extracted = extraction_response.choices[0].message.content.strip()
+                logging.info(f"[INFO] Extracted raw activity list string: {extracted}")
+                req.extracurricular_fields = eval(extracted) if extracted.startswith("[") else []
+                
+            except Exception as e:
+                logging.warning(f"[WARN] Failed to parse extracurricular fields. Error: {e}")
+                req.extracurricular_fields = []
+                
+        fully_done = []
+        for activity in req.extracurricular_fields:
+            activity_lower = activity.lower()
+            relevant_turns = [turn for turn in req.history if activity_lower in turn['question'].lower()]
+            questions_asked = [turn['question'].lower() for turn in relevant_turns]
+            answers = [turn['answer'].lower() for turn in relevant_turns]
+            
+            asked_1 = any("how long" in q and "role" in q for q in questions_asked)
+            asked_2 = any("enjoy" in q and "rewarding" in q for q in questions_asked)
+            asked_3 = any("challenging" in q for q in questions_asked)
+            asked_4 = any("learned about yourself" in q for q in questions_asked)
+            asked_5 = any("continuing" in q or "cut back" in q for q in questions_asked)
+            asked_6 = any("anecdotes" in q or "moments" in q or "take-aways" in q for q in questions_asked)
+            asked_more = any("anything more" in q and ("no" in a or "move on" in a) for q, a in zip(questions_asked, answers))
+            
+            if all([asked_1, asked_2, asked_3, asked_4, asked_5, asked_6, asked_more]):
+                fully_done.append(activity)
+            else:
+                logging.info(f"[ACTION] Asking next question for: {activity}")
+                if not asked_1:
+                    return {
+                        "question": f"Could you tell me more about {activity} and how long you’ve done it? What’s your role in it? What do you bring to it personally?",
+                        "current_theme": "",
+                        "theme_counts": req.theme_counts,
+                        "tag": ""
+                    }
+                elif not asked_2:
+                    return {
+                        "question": f"What do you enjoy about {activity}? What’s been most rewarding?",
+                        "current_theme": "",
+                        "theme_counts": req.theme_counts,
+                        "tag": ""
+                    }
+                elif not asked_3:
+                    return {
+                        "question": f"What have you found challenging about this work in {activity}?",
+                        "current_theme": "",
+                        "theme_counts": req.theme_counts,
+                        "tag": ""
+                    }
+                elif not asked_4:
+                    return {
+                        "question": f"What have you learned about yourself or others from your involvement in {activity}?",
+                        "current_theme": "",
+                        "theme_counts": req.theme_counts,
+                        "tag": ""
+                    }
+                elif not asked_5:
+                    return {
+                        "question": f"Do you see yourself continuing {activity}? If you’ve stopped or had to cut back (or will do in the future), how do you feel?",
+                        "current_theme": "",
+                        "theme_counts": req.theme_counts,
+                        "tag": ""
+                    }
+                
+                elif not asked_6:
+                    return {
+                        "question": f"Do you have any anecdotes, moments or take-aways that stand out from {activity}?",
+                        "current_theme": "",
+                        "theme_counts": req.theme_counts,
+                        "tag": ""
+                    }
+                
+                elif not asked_more:
+                    return {
+                        "question": f"Is there anything more you want to add regarding {activity}? If not, let’s move on.",
+                        "current_theme": "",
+                        "theme_counts": req.theme_counts,
+                        "tag": ""
+                    }
+                
+        logging.info("[DONE] All activities covered.")
         return {
-            "question": question,
+            "question": "Thank you. That’s the end of the extracurricular interview!",
             "current_theme": "",
             "theme_counts": req.theme_counts,
-            "tag": tag
+            "tag": "end_rapid_fire_extracurricular"
         }
+        
+            
+
+            
+                
+
+
     
     elif req.track == "Family & Background":
         all_bg_questions = PRESETS["Family & Background"]
