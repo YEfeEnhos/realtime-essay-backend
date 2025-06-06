@@ -161,6 +161,11 @@ async def next_question(req: QuestionRequest):
 
     
     
+    
+    logging.info(f"[DEBUG] Reached /next-question with: is_rapid_fire={req.is_rapid_fire}, track={req.track}, academic_index={req.academic_index}")
+
+    
+    
 
     # Pick the prompt based on the phase
     if req.is_rapid_fire and req.track == "Academic Interests":
@@ -473,7 +478,8 @@ If the CV is provided, you may suggest the top 5 **most impressive and diverse**
         }
 
     elif req.track == "Academic Interests":
-        logging.info("[START] Regular Academic Interests Track")
+        logging.info("[DEBUG] >>> ENTERED POST-RAPID Academic Interests block")
+        
         all_academic_questions = PRESETS["Academic Interests"]
 
         if req.academic_index >= len(all_academic_questions):
@@ -525,6 +531,8 @@ If the CV is provided, you may suggest the top 5 **most impressive and diverse**
         }
 
     else:
+        logging.warning("[WARNING] >>> FALLING INTO DEFAULT ELSE BLOCK — using random selection")
+
         prompt = f"""
 Your task is to:
 a. Gather as much detail as possible about the student’s academic interests or extracurricular involvement or personal background (depending on the choosen track). These details are necessary for the counselor.
